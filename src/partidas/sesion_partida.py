@@ -1,0 +1,188 @@
+"""
+Orquestacion de una partida de TileUp.
+
+La sesion conoce el motor, el estado, el registro de solucion y los
+observadores, pero no conoce las reglas ni la interfaz grafica. Es el punto
+unico por donde pasan todas las colocaciones, sin importar si vienen de una
+persona o de un agente.
+"""
+
+import time
+from typing import List, Optional, Tuple
+
+from src.dominio.estado_partida import EstadoPartida
+from src.dominio.motor import EstadoTerminacion, MotorTileUp
+from src.dominio.resultado_colocacion import ResultadoColocacion
+from src.instancias.instancia import Instancia
+from src.metricas.metricas_partida import MetricasPartida
+from src.partidas.observador import ObservadorPartida
+from src.soluciones.registro_solucion import RegistroSolucion
+
+
+class SesionPartida:
+    """Ciclo de vida completo de una partida."""
+
+    def __init__(self, instancia: Instancia, motor: Optional[MotorTileUp] = None,
+                 nombre_agente: str = "humano", semilla: int = 0) -> None:
+        """Prepara una partida nueva sobre la instancia indicada."""
+        self._instancia = instancia
+
+        if motor is None:
+            self._motor = MotorTileUp()
+        else:
+            self._motor = motor
+
+        self._estado = EstadoPartida(instancia)
+        self._registro = RegistroSolucion()
+        self._observadores: List[ObservadorPartida] = []
+        self._nombre_agente = nombre_agente
+        self._semilla = semilla
+
+        self._instante_inicio: Optional[float] = None
+        self._instante_fin: Optional[float] = None
+        self._esfuerzo_algoritmo = 0
+        self._nombre_esfuerzo = "acciones"
+
+    # ------------------------------------------------------------------
+    # Accesores
+    # ------------------------------------------------------------------
+
+    @property
+    def estado(self) -> EstadoPartida:
+        """Devuelve el estado actual de la partida."""
+        return self._estado
+
+    @property
+    def motor(self) -> MotorTileUp:
+        """Devuelve el motor de reglas asociado a la sesion."""
+        return self._motor
+
+    @property
+    def registro(self) -> RegistroSolucion:
+        """Devuelve el registro de colocaciones acumuladas."""
+        return self._registro
+
+    @property
+    def instancia(self) -> Instancia:
+        """Devuelve la instancia que define la partida."""
+        return self._instancia
+
+    # ------------------------------------------------------------------
+    # Observadores
+    # ------------------------------------------------------------------
+
+    def agregar_observador(self, observador: ObservadorPartida) -> None:
+        """Suscribe un observador a los eventos de la partida."""
+        self._observadores.append(observador)
+
+    def _notificar_inicio(self) -> None:
+        """Avisa a todos los observadores que la partida comenzo."""
+        for observador in self._observadores:
+            observador.al_iniciar(self._estado)
+
+    def _notificar_colocacion(self, resultado: ResultadoColocacion) -> None:
+        """Avisa a todos los observadores de una colocacion aplicada."""
+        for observador in self._observadores:
+            observador.al_colocar(self._estado, resultado)
+
+    def _notificar_fin(self, terminacion: EstadoTerminacion) -> None:
+        """Avisa a todos los observadores que la partida termino."""
+        for observador in self._observadores:
+            observador.al_terminar(self._estado, terminacion)
+
+    # ------------------------------------------------------------------
+    # Ciclo de vida
+    # ------------------------------------------------------------------
+
+    def iniciar(self) -> None:
+        """Arranca el cronometro y notifica el inicio de la partida."""
+        self._instante_inicio = time.perf_counter()
+        self._instante_fin = None
+        self._notificar_inicio()
+
+    def aplicar_colocacion(self, fila: int, columna: int) -> ResultadoColocacion:
+        """
+        Aplica una colocacion decidida desde afuera.
+
+        Este es el metodo que usa la GUI cuando la persona hace clic en una
+        celda, y tambien el que usara el ejecutor de agentes.
+        """
+        if self._instante_inicio is None:
+            self.iniciar()
+
+        resultado = self._motor.colocar(self._estado, fila, columna)
+
+        self._registro.agregar(resultado)
+        self._esfuerzo_algoritmo = self._esfuerzo_algoritmo + 1
+
+        self._notificar_colocacion(resultado)
+
+        terminacion = self._motor.evaluar_terminacion(self._estado)
+
+        if terminacion != EstadoTerminacion.EN_CURSO:
+            self.finalizar(terminacion)
+
+        return resultado
+
+    def acciones_legales(self) -> List[Tuple[int, int]]:
+        """Devuelve las celdas donde la ficha pendiente puede colocarse."""
+        return self._motor.acciones_legales(self._estado)
+
+    def evaluar_terminacion(self) -> EstadoTerminacion:
+        """Consulta al motor la condicion de termino actual."""
+        return self._motor.evaluar_terminacion(self._estado)
+
+    def finalizar(self, terminacion: Optional[EstadoTerminacion] = None) -> EstadoTerminacion:
+        """Detiene el cronometro y notifica el fin de la partida."""
+        if self._instante_fin is None:
+            self._instante_fin = time.perf_counter()
+
+        if terminacion is None:
+            terminacion_final = self._motor.evaluar_terminacion(self._estado)
+        else:
+            terminacion_final = terminacion
+
+        self._notificar_fin(terminacion_final)
+        return terminacion_final
+
+    # ------------------------------------------------------------------
+    # Metricas
+    # ------------------------------------------------------------------
+
+    def registrar_esfuerzo(self, cantidad: int, nombre: str) -> None:
+        """
+        Fija la medida de esfuerzo propia del algoritmo.
+
+        El agente de busqueda llamara a este metodo con nodos expandidos y el
+        evolutivo con evaluaciones de aptitud.
+        """
+        self._esfuerzo_algoritmo = cantidad
+        self._nombre_esfuerzo = nombre
+
+    def tiempo_transcurrido(self) -> float:
+        """Devuelve el tiempo de la partida en segundos."""
+        if self._instante_inicio is None:
+            return 0.0
+
+        if self._instante_fin is None:
+            return time.perf_counter() - self._instante_inicio
+
+        return self._instante_fin - self._instante_inicio
+
+    def construir_metricas(self) -> MetricasPartida:
+        """Reune todas las metricas reportables de la partida."""
+        terminacion = self._motor.evaluar_terminacion(self._estado)
+
+        return MetricasPartida(
+            nombre_agente=self._nombre_agente,
+            nombre_instancia=self._instancia.nombre,
+            semilla=self._semilla,
+            fichas_colocadas=self._estado.cantidad_colocadas,
+            fichas_totales=self._instancia.cantidad_fichas,
+            celdas_ocupadas=self._estado.tablero.cantidad_ocupadas,
+            valor_ficha_mayor=self._estado.tablero.valor_ficha_mayor(),
+            tiempo_segundos=self.tiempo_transcurrido(),
+            esfuerzo_algoritmo=self._esfuerzo_algoritmo,
+            nombre_esfuerzo=self._nombre_esfuerzo,
+            resultado=terminacion.value,
+        )
