@@ -88,3 +88,51 @@ def test_semillas_distintas_producen_soluciones_distintas(tmp_path):
 
     assert os.path.isfile(ruta_a) is True
     assert os.path.isfile(ruta_b) is True
+
+
+
+def test_los_observadores_reciben_una_sola_notificacion_de_fin():
+    """La sesion no debe notificar el fin de la partida mas de una vez."""
+    from src.dominio.estado_partida import EstadoPartida
+    from src.dominio.motor import EstadoTerminacion
+    from src.dominio.resultado_colocacion import ResultadoColocacion
+    from src.partidas.observador import ObservadorPartida
+    from src.partidas.sesion_partida import SesionPartida
+
+    class ObservadorContador(ObservadorPartida):
+        """Observador de prueba que cuenta cuantas veces se le notifica."""
+
+        def __init__(self):
+            self.inicios = 0
+            self.colocaciones = 0
+            self.finales = 0
+
+        def al_iniciar(self, estado: EstadoPartida) -> None:
+            self.inicios = self.inicios + 1
+
+        def al_colocar(self, estado: EstadoPartida,
+                       resultado: ResultadoColocacion) -> None:
+            self.colocaciones = self.colocaciones + 1
+
+        def al_terminar(self, estado: EstadoPartida,
+                        terminacion: EstadoTerminacion) -> None:
+            self.finales = self.finales + 1
+
+    instancia = LectorInstancia().leer_desde_archivo(RUTA_INSTANCIA_PEQUENA)
+    sesion = SesionPartida(instancia=instancia, nombre_agente="prueba")
+    contador = ObservadorContador()
+    sesion.agregar_observador(contador)
+
+    sesion.iniciar()
+    sesion.iniciar()
+
+    for indice in range(instancia.cantidad_fichas):
+        fila, columna = sesion.acciones_legales()[0]
+        sesion.aplicar_colocacion(fila, columna)
+
+    sesion.finalizar()
+    sesion.finalizar()
+
+    assert contador.inicios == 1
+    assert contador.finales == 1
+    assert contador.colocaciones == instancia.cantidad_fichas

@@ -17,13 +17,13 @@ class ObservadorConsola(ObservadorPartida):
     Dibuja una barra de progreso textual mientras avanza la partida.
 
     Es una implementacion mas de ObservadorPartida, exactamente igual a la
-    vista grafica desde el punto de vista de la sesion. Esto demuestra que la
-    logica del juego no depende de ninguna capa de presentacion.
+    ventana de juego desde el punto de vista de la sesion. Esto demuestra que
+    la logica del juego no depende de ninguna capa de presentacion.
     """
 
-    def __init__(self, mostrar_detalle: bool = False) -> None:
-        """Construye el observador, opcionalmente con detalle por jugada."""
-        self._mostrar_detalle = mostrar_detalle
+    def __init__(self, etiqueta: str = "") -> None:
+        """Construye el observador con una etiqueta que identifica al agente."""
+        self._etiqueta = etiqueta
         self._fichas_totales = 0
 
     def al_iniciar(self, estado: EstadoPartida) -> None:
@@ -34,17 +34,12 @@ class ObservadorConsola(ObservadorPartida):
     def al_colocar(self, estado: EstadoPartida,
                    resultado: ResultadoColocacion) -> None:
         """Actualiza la barra tras cada colocacion."""
-        if self._mostrar_detalle is True:
-            print(resultado.descripcion())
-            return
-
         self._dibujar_barra(estado.cantidad_colocadas)
 
     def al_terminar(self, estado: EstadoPartida,
                     terminacion: EstadoTerminacion) -> None:
         """Cierra la linea de la barra al terminar la partida."""
-        if self._mostrar_detalle is False:
-            self._dibujar_barra(estado.cantidad_colocadas)
+        self._dibujar_barra(estado.cantidad_colocadas)
 
         sys.stdout.write("\n")
         sys.stdout.flush()
@@ -59,8 +54,14 @@ class ObservadorConsola(ObservadorPartida):
         segmentos_vacios = ANCHO_BARRA_PROGRESO - segmentos_llenos
 
         barra = "[" + ("#" * segmentos_llenos) + ("-" * segmentos_vacios) + "]"
+
+        if len(self._etiqueta) > 0:
+            prefijo = self._etiqueta.ljust(12) + " "
+        else:
+            prefijo = ""
+
         texto_progreso = (
-            barra + " " + str(cantidad_colocadas)
+            prefijo + barra + " " + str(cantidad_colocadas)
             + "/" + str(self._fichas_totales)
         )
 

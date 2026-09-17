@@ -43,6 +43,12 @@ class SesionPartida:
         self._esfuerzo_algoritmo = 0
         self._nombre_esfuerzo = "acciones"
 
+        # Marcas de una sola ejecucion. Garantizan que los observadores reciban
+        # exactamente una notificacion de inicio y una de fin, sin importar
+        # cuantas veces se llame a iniciar o a finalizar desde afuera.
+        self._inicio_notificado = False
+        self._fin_notificado = False
+
     # ------------------------------------------------------------------
     # Accesores
     # ------------------------------------------------------------------
@@ -66,6 +72,11 @@ class SesionPartida:
     def instancia(self) -> Instancia:
         """Devuelve la instancia que define la partida."""
         return self._instancia
+
+    @property
+    def esta_terminada(self) -> bool:
+        """Indica si la partida ya notifico su condicion de termino."""
+        return self._fin_notificado
 
     # ------------------------------------------------------------------
     # Observadores
@@ -95,19 +106,30 @@ class SesionPartida:
     # ------------------------------------------------------------------
 
     def iniciar(self) -> None:
-        """Arranca el cronometro y notifica el inicio de la partida."""
+        """
+        Arranca el cronometro y notifica el inicio de la partida.
+
+        Llamarla mas de una vez no tiene efecto: la notificacion de inicio se
+        entrega una sola vez a cada observador.
+        """
+        if self._inicio_notificado is True:
+            return
+
         self._instante_inicio = time.perf_counter()
         self._instante_fin = None
+        self._inicio_notificado = True
+
         self._notificar_inicio()
 
     def aplicar_colocacion(self, fila: int, columna: int) -> ResultadoColocacion:
         """
         Aplica una colocacion decidida desde afuera.
 
-        Este es el metodo que usa la GUI cuando la persona hace clic en una
-        celda, y tambien el que usara el ejecutor de agentes.
+        Este es el metodo que usa la ventana de juego cuando la persona hace
+        clic en una celda, y tambien el que usa el ejecutor de agentes al
+        reproducir la secuencia planificada.
         """
-        if self._instante_inicio is None:
+        if self._inicio_notificado is False:
             self.iniciar()
 
         resultado = self._motor.colocar(self._estado, fila, columna)
@@ -133,16 +155,28 @@ class SesionPartida:
         return self._motor.evaluar_terminacion(self._estado)
 
     def finalizar(self, terminacion: Optional[EstadoTerminacion] = None) -> EstadoTerminacion:
-        """Detiene el cronometro y notifica el fin de la partida."""
-        if self._instante_fin is None:
-            self._instante_fin = time.perf_counter()
+        """
+        Detiene el cronometro y notifica el fin de la partida.
 
+        Es idempotente: si la partida ya habia terminado, devuelve la misma
+        condicion de termino sin volver a notificar a los observadores. Esto
+        permite que tanto la colocacion final como el ejecutor llamen a este
+        metodo sin que la barra de progreso se dibuje dos veces.
+        """
         if terminacion is None:
             terminacion_final = self._motor.evaluar_terminacion(self._estado)
         else:
             terminacion_final = terminacion
 
+        if self._fin_notificado is True:
+            return terminacion_final
+
+        if self._instante_fin is None:
+            self._instante_fin = time.perf_counter()
+
+        self._fin_notificado = True
         self._notificar_fin(terminacion_final)
+
         return terminacion_final
 
     # ------------------------------------------------------------------

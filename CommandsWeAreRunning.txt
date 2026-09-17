@@ -1,0 +1,41 @@
+# --- Preparacion del entorno -------------------------------------------
+py -3 -m venv .venv
+.venv\Scripts\python.exe -m pip install --upgrade pip
+.venv\Scripts\python.exe -m pip install -r requirements.txt
+
+# Opcional: activar el entorno (requiere ajustar la politica de PowerShell)
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+.venv\Scripts\Activate.ps1
+
+# --- Ayuda y consultas -------------------------------------------------
+python main.py
+python main.py --ayuda-completa
+python main.py agentes
+python main.py backend
+python main.py instancia --instancia datos\instancias\ejemplo_n4_k3_m6.txt
+
+# --- Juego humano ------------------------------------------------------
+python main.py jugar
+python main.py jugar --instancia datos\instancias\ejemplo_n5_k3_m12.txt --jugador adriel --partida 1
+
+# --- Resolver con un agente -------------------------------------------
+python main.py resolver --instancia datos\instancias\ejemplo_n4_k3_m6.txt --agente aleatorio --semilla 42 --limite-tiempo 5
+python main.py resolver --instancia datos\instancias\ejemplo_n4_k3_m6.txt --agente busqueda_exacta --semilla 0 --limite-tiempo 30
+python main.py resolver --instancia datos\instancias\ejemplo_n6_k4_m24.txt --agente busqueda --semilla 7 --limite-tiempo 30
+python main.py resolver --instancia datos\instancias\ejemplo_n6_k4_m24.txt --agente busqueda_agresiva --semilla 7 --limite-tiempo 30 --silencioso
+
+# --- Comparar varios agentes en una sola corrida ----------------------
+python main.py resolver --instancia datos\instancias\ejemplo_n5_k3_m12.txt --agentes aleatorio busqueda busqueda_agresiva --semilla 1 --limite-tiempo 20
+python main.py resolver --instancia datos\instancias\ejemplo_n4_k3_m6.txt --agentes busqueda_exacta busqueda_dijkstra --semilla 0 --limite-tiempo 60
+
+# --- Validar soluciones ------------------------------------------------
+python main.py validar --instancia datos\instancias\ejemplo_n4_k3_m6.txt --solucion datos\soluciones\busqueda\ejemplo_n4_k3_m6__busqueda__s0.sol
+python main.py validar --instancia datos\instancias\ejemplo_n4_k3_m6.txt --solucion datos\soluciones\aleatorio\ejemplo_n4_k3_m6__aleatorio__s42.sol --exigir-completa
+python main.py validar --instancia datos\instancias\ejemplo_n5_k3_m12.txt --solucion datos\soluciones\humano\ejemplo_n5_k3_m12__humano__s1.sol
+
+# --- Pruebas -----------------------------------------------------------
+python -m pytest pruebas -v
+python -m pytest pruebas -q
+
+# --- Comprobar el codigo de salida de la ultima orden ------------------
+echo $LASTEXITCODE

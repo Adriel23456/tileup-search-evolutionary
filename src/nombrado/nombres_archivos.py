@@ -1,9 +1,10 @@
 """
-Convenciones de nombrado de archivos generados por el sistema.
+Convenciones de nombrado de los archivos generados por el sistema.
 
-Centralizar el nombrado en un solo modulo evita que cada parte del sistema
-invente su propio patron y permite que el validador y los guiones de la
-bateria experimental encuentren los archivos sin ambiguedad.
+Este modulo no pertenece ni a la consola ni a la interfaz grafica: ambas lo
+usan. Centralizar aqui los patrones evita que cada capa invente el suyo y
+permite que el validador y la bateria experimental encuentren los archivos
+sin ambiguedad.
 """
 
 import os
@@ -14,6 +15,12 @@ EXTENSION_SOLUCION = ".sol"
 
 # Separador entre los campos del nombre de una solucion.
 SEPARADOR_CAMPOS = "__"
+
+# Raiz de los directorios de soluciones.
+DIRECTORIO_RAIZ_SOLUCIONES = os.path.join("datos", "soluciones")
+
+# Nombre del agente que representa al jugador humano.
+NOMBRE_AGENTE_HUMANO = "humano"
 
 
 def nombre_archivo_solucion(nombre_instancia: str, nombre_agente: str,
@@ -38,7 +45,7 @@ def directorio_soluciones_de(nombre_agente: str) -> str:
 
     Patron: datos/soluciones/<agente>
     """
-    return os.path.join("datos", "soluciones", nombre_agente)
+    return os.path.join(DIRECTORIO_RAIZ_SOLUCIONES, nombre_agente)
 
 
 def ruta_solucion(nombre_instancia: str, nombre_agente: str,
@@ -47,3 +54,17 @@ def ruta_solucion(nombre_instancia: str, nombre_agente: str,
     directorio = directorio_soluciones_de(nombre_agente)
     nombre = nombre_archivo_solucion(nombre_instancia, nombre_agente, semilla)
     return os.path.join(directorio, nombre)
+
+
+def ruta_solucion_humana(nombre_instancia: str, numero_partida: int) -> str:
+    """
+    Construye la ruta de la solucion de una partida humana.
+
+    El numero de partida cumple el papel de la semilla, ya que una persona no
+    juega a partir de un generador aleatorio.
+    """
+    return ruta_solucion(
+        nombre_instancia=nombre_instancia,
+        nombre_agente=NOMBRE_AGENTE_HUMANO,
+        semilla=numero_partida,
+    )

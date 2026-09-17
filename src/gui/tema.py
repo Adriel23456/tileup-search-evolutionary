@@ -1,11 +1,10 @@
-"""Paleta y constantes visuales de la interfaz grafica."""
+"""Paleta y constantes visuales de la ventana de juego."""
 
 from typing import List
 
 
 # Colores de fondo de la ventana y los paneles.
 COLOR_FONDO_VENTANA = "#1e1e2e"
-COLOR_FONDO_PANEL = "#28283c"
 COLOR_TEXTO_PRIMARIO = "#f0f0f5"
 COLOR_TEXTO_SECUNDARIO = "#a0a0b8"
 COLOR_CELDA_VACIA = "#3a3a52"
@@ -28,8 +27,7 @@ PALETA_COLORES_FICHA: List[str] = [
     "#f7c8e0",
 ]
 
-# Tipografias reutilizadas por las vistas.
-FUENTE_TITULO = ("Segoe UI", 20, "bold")
+# Tipografias reutilizadas por la ventana.
 FUENTE_SUBTITULO = ("Segoe UI", 12)
 FUENTE_BOTON = ("Segoe UI", 11, "bold")
 FUENTE_CELDA = ("Consolas", 13, "bold")

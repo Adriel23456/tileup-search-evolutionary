@@ -11,6 +11,7 @@ __pycache__/
 datos/soluciones/humano/*.sol
 datos/soluciones/busqueda/*.sol
 datos/soluciones/evolutivo/*.sol
+datos/soluciones/aleatorio/*.sol
 resultados/humano/*.csv
 resultados/experimentos/*
 !datos/soluciones/*/.gitkeep

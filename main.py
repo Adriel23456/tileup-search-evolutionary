@@ -1,194 +1,121 @@
 """
 Punto de entrada unico del sistema TileUp.
 
-Modo consola (sin interfaz grafica, sin pasos interactivos):
-    python main.py --instancia datos\\instancias\\ejemplo_n4_k3_m6.txt ^
-                   --agente aleatorio --semilla 42 --limite-tiempo 5
+El programa se organiza en subcomandos. Cada uno resuelve una tarea y declara
+sus propios argumentos:
 
-Modo grafico:
-    python main.py --gui
+    resolver     Resuelve una instancia con uno o varios agentes.
+    validar      Valida un archivo de solucion contra su instancia.
+    jugar        Abre la ventana de juego para jugar una partida.
+    instancia    Revisa el formato de un archivo de instancia.
+    agentes      Lista los agentes disponibles.
+    backend      Muestra el backend de computo detectado.
 
-Utilidades:
-    python main.py --listar-agentes
-    python main.py --revisar-instancia datos\\instancias\\ejemplo_n4_k3_m6.txt
-    python main.py --backend
+Ejemplos:
+    python main.py resolver --instancia datos\\instancias\\ejemplo_n4_k3_m6.txt ^
+                            --agente busqueda --semilla 42 --limite-tiempo 5
+
+    python main.py validar --instancia datos\\instancias\\ejemplo_n4_k3_m6.txt ^
+                           --solucion datos\\soluciones\\busqueda\\ejemplo_n4_k3_m6__busqueda__s42.sol
+
+    python main.py jugar --instancia datos\\instancias\\pequena_n5_k3_m12.txt
+    python main.py agentes
+    python main.py --ayuda-completa
+
+Este archivo no contiene logica del juego, de los algoritmos ni de la interfaz
+grafica. Su unica responsabilidad es armar el analizador de argumentos a
+partir del registro de subcomandos y despachar hacia el que corresponda.
 """
 
 import argparse
 import sys
 
-from src.aceleracion.backend import DetectorBackend
-from src.cli.ejecutor_consola import (
-    CODIGO_SALIDA_ERROR_ENTRADA,
-    CODIGO_SALIDA_EXITO,
-    EjecutorConsola,
+from src.cli.codigos_salida import CODIGO_SALIDA_ERROR_ENTRADA
+from src.cli.registro_comandos import RegistroComandos
+
+
+# Nombre del programa, tal como aparece en los mensajes de ayuda.
+NOMBRE_PROGRAMA = "tileup"
+
+# Descripcion general que encabeza la ayuda.
+DESCRIPCION_PROGRAMA = (
+    "Sistema TileUp: motor del juego, agentes automaticos, validador de "
+    "soluciones e interfaz de juego humano."
 )
-from src.instancias.errores import ErrorFormatoInstancia
-from src.instancias.lector_instancia import LectorInstancia
 
 
-# Limite de tiempo por defecto en segundos cuando no se indica otro.
-LIMITE_TIEMPO_POR_DEFECTO = 10.0
+def construir_analizador_argumentos(registro: RegistroComandos) -> argparse.ArgumentParser:
+    """
+    Arma el analizador principal con un subanalizador por subcomando.
 
-# Semilla por defecto cuando no se indica otra.
-SEMILLA_POR_DEFECTO = 0
-
-
-def construir_analizador_argumentos() -> argparse.ArgumentParser:
-    """Define los argumentos que acepta la linea de comandos."""
+    Cada subcomando declara sus propios argumentos, de modo que esta funcion
+    no conoce ninguno de ellos y no cambia cuando se agrega uno nuevo.
+    """
     analizador = argparse.ArgumentParser(
-        prog="tileup",
-        description=(
-            "Sistema TileUp: motor del juego, ejecucion por linea de comandos "
-            "e interfaz grafica opcional."
-        ),
+        prog=NOMBRE_PROGRAMA,
+        description=DESCRIPCION_PROGRAMA,
     )
 
     analizador.add_argument(
-        "--instancia",
-        type=str,
-        default=None,
-        help="Ruta del archivo de instancia.",
-    )
-
-    analizador.add_argument(
-        "--agente",
-        type=str,
-        default=None,
-        help="Nombre del agente que debe resolver la instancia.",
-    )
-
-    analizador.add_argument(
-        "--semilla",
-        type=int,
-        default=SEMILLA_POR_DEFECTO,
-        help="Semilla que fija toda fuente de azar del agente.",
-    )
-
-    analizador.add_argument(
-        "--limite-tiempo",
-        type=float,
-        default=LIMITE_TIEMPO_POR_DEFECTO,
-        dest="limite_tiempo",
-        help="Limite de tiempo de planificacion, en segundos.",
-    )
-
-    analizador.add_argument(
-        "--salida",
-        type=str,
-        default=None,
-        help=(
-            "Ruta del archivo de solucion. Si se omite, se usa la convencion "
-            "datos/soluciones/<agente>/<instancia>__<agente>__s<semilla>.sol"
-        ),
-    )
-
-    analizador.add_argument(
-        "--silencioso",
+        "--ayuda-completa",
         action="store_true",
-        help="Omite la barra de progreso y deja solo la linea de metricas.",
+        dest="ayuda_completa",
+        help="Muestra la ayuda de todos los subcomandos y termina.",
     )
 
-    analizador.add_argument(
-        "--gui",
-        action="store_true",
-        help="Abre la interfaz grafica en lugar de ejecutar por consola.",
+    subanalizadores = analizador.add_subparsers(
+        dest="comando",
+        metavar="subcomando",
+        help="Tarea que se desea ejecutar.",
     )
 
-    analizador.add_argument(
-        "--listar-agentes",
-        action="store_true",
-        dest="listar_agentes",
-        help="Imprime los agentes disponibles y termina.",
-    )
-
-    analizador.add_argument(
-        "--revisar-instancia",
-        type=str,
-        default=None,
-        dest="revisar_instancia",
-        help="Valida el formato de una instancia y termina.",
-    )
-
-    analizador.add_argument(
-        "--backend",
-        action="store_true",
-        help="Muestra el backend de computo detectado y termina.",
-    )
+    for comando in registro.todos():
+        subanalizador = subanalizadores.add_parser(
+            comando.nombre,
+            help=comando.ayuda,
+            description=comando.ayuda,
+        )
+        comando.configurar_argumentos(subanalizador)
 
     return analizador
 
 
-def revisar_instancia(ruta_instancia: str) -> int:
-    """Valida una instancia e informa el resultado por salida estandar."""
-    lector = LectorInstancia()
+def mostrar_ayuda_completa(registro: RegistroComandos,
+                           analizador: argparse.ArgumentParser) -> int:
+    """Imprime la ayuda general seguida de la de cada subcomando."""
+    analizador.print_help()
 
-    try:
-        instancia = lector.leer_desde_archivo(ruta_instancia)
-    except ErrorFormatoInstancia as error_de_formato:
-        print("Instancia invalida: " + str(error_de_formato), file=sys.stderr)
-        return CODIGO_SALIDA_ERROR_ENTRADA
+    for comando in registro.todos():
+        print("")
+        print("=" * 70)
+        print("Subcomando: " + comando.nombre)
+        print("=" * 70)
 
-    print("Instancia valida: " + instancia.resumen())
-    return CODIGO_SALIDA_EXITO
+        subanalizador = argparse.ArgumentParser(
+            prog=NOMBRE_PROGRAMA + " " + comando.nombre,
+            description=comando.ayuda,
+        )
+        comando.configurar_argumentos(subanalizador)
+        subanalizador.print_help()
 
-
-def mostrar_backend() -> int:
-    """Imprime el backend de computo disponible."""
-    informacion = DetectorBackend().detectar()
-
-    print("backend=" + informacion.nombre)
-    print("soporta_gpu=" + str(informacion.soporta_gpu))
-    print("detalle=" + informacion.detalle)
-
-    return CODIGO_SALIDA_EXITO
-
-
-def abrir_interfaz(ruta_instancia: str) -> int:
-    """Abre la interfaz grafica del sistema."""
-    from src.gui.aplicacion import AplicacionTileUp
-
-    aplicacion = AplicacionTileUp(ruta_instancia_inicial=ruta_instancia)
-    aplicacion.ejecutar()
-
-    return CODIGO_SALIDA_EXITO
+    return CODIGO_SALIDA_ERROR_ENTRADA
 
 
 def main() -> int:
-    """Interpreta los argumentos y ejecuta la accion correspondiente."""
-    analizador = construir_analizador_argumentos()
+    """Interpreta los argumentos y despacha hacia el subcomando indicado."""
+    registro = RegistroComandos()
+    analizador = construir_analizador_argumentos(registro)
     argumentos = analizador.parse_args()
 
-    if argumentos.backend is True:
-        return mostrar_backend()
+    if argumentos.ayuda_completa is True:
+        return mostrar_ayuda_completa(registro, analizador)
 
-    if argumentos.listar_agentes is True:
-        return EjecutorConsola().listar_agentes()
+    if argumentos.comando is None:
+        analizador.print_help()
+        return CODIGO_SALIDA_ERROR_ENTRADA
 
-    if argumentos.revisar_instancia is not None:
-        return revisar_instancia(argumentos.revisar_instancia)
-
-    if argumentos.gui is True:
-        return abrir_interfaz(argumentos.instancia)
-
-    if argumentos.agente is not None:
-        if argumentos.instancia is None:
-            print(
-                "Se indico un agente pero falta --instancia",
-                file=sys.stderr,
-            )
-            return CODIGO_SALIDA_ERROR_ENTRADA
-
-        return EjecutorConsola().ejecutar(
-            ruta_instancia=argumentos.instancia,
-            nombre_agente=argumentos.agente,
-            semilla=argumentos.semilla,
-            limite_tiempo_segundos=argumentos.limite_tiempo,
-            ruta_salida=argumentos.salida,
-            silencioso=argumentos.silencioso,
-        )
-
-    return abrir_interfaz(argumentos.instancia)
+    comando = registro.obtener(argumentos.comando)
+    return comando.ejecutar(argumentos)
 
 
 if __name__ == "__main__":

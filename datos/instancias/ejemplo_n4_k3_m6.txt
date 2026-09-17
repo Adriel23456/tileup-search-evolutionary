@@ -1,4 +1,5 @@
 # TileUp -- instancia de ejemplo del enunciado
+# Patron de nombre: <etiqueta>_n<N>_k<K>_m<M>.txt
 4 3        # tablero 4x4, 3 colores
 6          # 6 fichas en la secuencia
 1 2

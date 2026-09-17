@@ -18,7 +18,7 @@ from typing import List, Optional, Tuple
 
 from src.agentes.agente import Agente
 from src.dominio.estado_partida import EstadoPartida
-from src.dominio.motor import ErrorColocacionIlegal, MotorTileUp
+from src.dominio.motor import ErrorColocacionIlegal
 from src.instancias.instancia import Instancia
 from src.metricas.metricas_partida import MetricasPartida
 from src.partidas.observador import ObservadorPartida

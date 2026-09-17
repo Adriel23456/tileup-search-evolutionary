@@ -1,4 +1,13 @@
-"""Vista donde una persona juega TileUp directamente."""
+"""
+Ventana de juego humano.
+
+Este modulo tiene una unica responsabilidad: permitir que una persona juegue
+una partida de TileUp y registrar su resultado. No conoce agentes, no conoce
+algoritmos y no ofrece navegacion: es una sola pantalla con un solo proposito.
+
+Toda la ejecucion de agentes vive en la capa de consola y es inalcanzable
+desde aqui, por decision de diseno.
+"""
 
 import os
 import tkinter
@@ -11,13 +20,11 @@ from src.dominio.resultado_colocacion import ResultadoColocacion
 from src.gui import tema
 from src.instancias.instancia import Instancia
 from src.metricas.registro_humano import RegistroHumano
+from src.nombrado import nombres_archivos
 from src.partidas.observador import ObservadorPartida
 from src.partidas.sesion_partida import SesionPartida
 from src.soluciones.escritor_solucion import EscritorSolucion
 
-
-# Directorio donde se guardan las soluciones producidas por el jugador humano.
-DIRECTORIO_SOLUCIONES_HUMANO = os.path.join("datos", "soluciones", "humano")
 
 # Archivo donde se acumulan los resultados de las partidas humanas.
 RUTA_BITACORA_HUMANA = os.path.join(
@@ -25,57 +32,80 @@ RUTA_BITACORA_HUMANA = os.path.join(
 )
 
 
-class VistaJuegoHumano(tkinter.Frame, ObservadorPartida):
+class VentanaJuego(ObservadorPartida):
     """
-    Tablero interactivo para el jugador humano.
+    Unica ventana de la aplicacion grafica.
 
-    La vista implementa ObservadorPartida, de modo que se refresca sola cada
-    vez que la sesion aplica una colocacion. No conoce las reglas del juego:
-    solo dibuja el estado que el motor produjo.
+    Implementa ObservadorPartida, de modo que se refresca sola cada vez que la
+    sesion aplica una colocacion. No conoce las reglas del juego: solo dibuja
+    el estado que el motor produjo.
     """
 
-    def __init__(self, contenedor: tkinter.Widget, instancia: Instancia,
-                 al_volver_al_menu: Callable[[], None],
-                 nombre_jugador: str = "humano") -> None:
-        """Construye la vista y arranca una partida nueva."""
-        super().__init__(contenedor, background=tema.COLOR_FONDO_VENTANA)
-
+    def __init__(self, instancia: Instancia, nombre_jugador: str,
+                 numero_partida: int) -> None:
+        """Construye la ventana y prepara una partida sobre la instancia."""
         self._instancia = instancia
-        self._al_volver_al_menu = al_volver_al_menu
         self._nombre_jugador = nombre_jugador
+        self._numero_partida = numero_partida
 
         self._sesion = SesionPartida(
             instancia=instancia,
-            nombre_agente="humano",
-            semilla=0,
+            nombre_agente=nombres_archivos.NOMBRE_AGENTE_HUMANO,
+            semilla=numero_partida,
         )
         self._sesion.agregar_observador(self)
 
         self._botones_celda: List[List[tkinter.Button]] = []
         self._partida_terminada = False
 
+        self._ventana = None
         self._etiqueta_ficha_actual = None
         self._etiqueta_metricas = None
         self._barra_progreso = None
 
-        self._construir_interfaz()
+        self._construir_ventana()
         self._sesion.iniciar()
         self._refrescar_todo()
 
     # ------------------------------------------------------------------
-    # Construccion de la interfaz
+    # Construccion de la ventana
     # ------------------------------------------------------------------
 
-    def _construir_interfaz(self) -> None:
-        """Arma el encabezado, el tablero y el pie de la vista."""
+    def _construir_ventana(self) -> None:
+        """Crea la ventana raiz con el encabezado, el tablero y el pie."""
+        self._ventana = tkinter.Tk()
+        self._ventana.title(
+            "TileUp - Juego humano - " + self._instancia.nombre
+        )
+        self._ventana.configure(background=tema.COLOR_FONDO_VENTANA)
+        self._ventana.resizable(False, False)
+
+        self._configurar_estilos()
+
         self._construir_encabezado()
         self._construir_tablero()
         self._construir_pie()
 
+    def _configurar_estilos(self) -> None:
+        """Aplica el estilo comun a los widgets de ttk."""
+        estilo = ttk.Style()
+
+        try:
+            estilo.theme_use("clam")
+        except tkinter.TclError:
+            pass
+
+        estilo.configure("TButton", font=tema.FUENTE_BOTON, padding=8)
+        estilo.configure(
+            "TProgressbar",
+            background=tema.COLOR_ACENTO,
+            troughcolor=tema.COLOR_CELDA_VACIA,
+        )
+
     def _construir_encabezado(self) -> None:
         """Crea la zona superior con la ficha pendiente y el progreso."""
         panel_encabezado = tkinter.Frame(
-            self, background=tema.COLOR_FONDO_VENTANA
+            self._ventana, background=tema.COLOR_FONDO_VENTANA
         )
         panel_encabezado.pack(fill=tkinter.X, padx=16, pady=(14, 8))
 
@@ -108,7 +138,7 @@ class VistaJuegoHumano(tkinter.Frame, ObservadorPartida):
     def _construir_tablero(self) -> None:
         """Crea la cuadricula de botones que representa el tablero."""
         panel_tablero = tkinter.Frame(
-            self,
+            self._ventana,
             background=tema.COLOR_BORDE,
             padx=2,
             pady=2,
@@ -139,8 +169,10 @@ class VistaJuegoHumano(tkinter.Frame, ObservadorPartida):
             self._botones_celda.append(botones_de_la_fila)
 
     def _construir_pie(self) -> None:
-        """Crea la zona inferior con metricas y el boton de regreso."""
-        panel_pie = tkinter.Frame(self, background=tema.COLOR_FONDO_VENTANA)
+        """Crea la zona inferior con metricas y el boton de cierre."""
+        panel_pie = tkinter.Frame(
+            self._ventana, background=tema.COLOR_FONDO_VENTANA
+        )
         panel_pie.pack(fill=tkinter.X, padx=16, pady=(4, 16))
 
         self._etiqueta_metricas = tkinter.Label(
@@ -153,12 +185,12 @@ class VistaJuegoHumano(tkinter.Frame, ObservadorPartida):
         )
         self._etiqueta_metricas.pack(side=tkinter.LEFT)
 
-        boton_volver = ttk.Button(
+        boton_salir = ttk.Button(
             panel_pie,
-            text="Volver al menu",
-            command=self._al_volver_al_menu,
+            text="Salir",
+            command=self._ventana.destroy,
         )
-        boton_volver.pack(side=tkinter.RIGHT)
+        boton_salir.pack(side=tkinter.RIGHT)
 
     def _crear_accion_de_celda(self, fila: int, columna: int) -> Callable[[], None]:
         """
@@ -312,12 +344,9 @@ class VistaJuegoHumano(tkinter.Frame, ObservadorPartida):
         """
         metricas = self._sesion.construir_metricas()
 
-        nombre_archivo = (
-            self._instancia.nombre + "_humano_"
-            + str(metricas.fichas_colocadas) + "colocadas.sol"
-        )
-        ruta_solucion = os.path.join(
-            DIRECTORIO_SOLUCIONES_HUMANO, nombre_archivo
+        ruta_solucion = nombres_archivos.ruta_solucion_humana(
+            nombre_instancia=self._instancia.nombre,
+            numero_partida=self._numero_partida,
         )
 
         escritor = EscritorSolucion()
@@ -332,4 +361,12 @@ class VistaJuegoHumano(tkinter.Frame, ObservadorPartida):
 
         print(metricas.como_linea_estandar())
 
-        return ruta_solucion
+        return os.path.abspath(ruta_solucion)
+
+    # ------------------------------------------------------------------
+    # Ejecucion
+    # ------------------------------------------------------------------
+
+    def ejecutar(self) -> None:
+        """Entra en el bucle de eventos de Tkinter."""
+        self._ventana.mainloop()
