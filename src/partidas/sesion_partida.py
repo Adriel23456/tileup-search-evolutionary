@@ -8,7 +8,7 @@ persona o de un agente.
 """
 
 import time
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 from src.dominio.estado_partida import EstadoPartida
 from src.dominio.motor import EstadoTerminacion, MotorTileUp
@@ -67,16 +67,6 @@ class SesionPartida:
     def registro(self) -> RegistroSolucion:
         """Devuelve el registro de colocaciones acumuladas."""
         return self._registro
-
-    @property
-    def instancia(self) -> Instancia:
-        """Devuelve la instancia que define la partida."""
-        return self._instancia
-
-    @property
-    def esta_terminada(self) -> bool:
-        """Indica si la partida ya notifico su condicion de termino."""
-        return self._fin_notificado
 
     # ------------------------------------------------------------------
     # Observadores
@@ -146,14 +136,6 @@ class SesionPartida:
 
         return resultado
 
-    def acciones_legales(self) -> List[Tuple[int, int]]:
-        """Devuelve las celdas donde la ficha pendiente puede colocarse."""
-        return self._motor.acciones_legales(self._estado)
-
-    def evaluar_terminacion(self) -> EstadoTerminacion:
-        """Consulta al motor la condicion de termino actual."""
-        return self._motor.evaluar_terminacion(self._estado)
-
     def finalizar(self, terminacion: Optional[EstadoTerminacion] = None) -> EstadoTerminacion:
         """
         Detiene el cronometro y notifica el fin de la partida.
@@ -187,8 +169,8 @@ class SesionPartida:
         """
         Fija la medida de esfuerzo propia del algoritmo.
 
-        El agente de busqueda llamara a este metodo con nodos expandidos y el
-        evolutivo con evaluaciones de aptitud.
+        El agente de busqueda llama a este metodo con nodos expandidos y el
+        evolutivo lo hara con evaluaciones de aptitud.
         """
         self._esfuerzo_algoritmo = cantidad
         self._nombre_esfuerzo = nombre
@@ -210,6 +192,8 @@ class SesionPartida:
         return MetricasPartida(
             nombre_agente=self._nombre_agente,
             nombre_instancia=self._instancia.nombre,
+            dimension=self._instancia.dimension,
+            cantidad_colores=self._instancia.cantidad_colores,
             semilla=self._semilla,
             fichas_colocadas=self._estado.cantidad_colocadas,
             fichas_totales=self._instancia.cantidad_fichas,

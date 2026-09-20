@@ -4,8 +4,7 @@ Tarea Corta 1 - Agentes de busqueda y evolutivos para TileUp
 Inteligencia Artificial (IC-6200) - Instituto Tecnologico de Costa Rica
 
 Este documento responde al requisito del enunciado de declarar como se usaron
-herramientas de IA, en que partes y que se verifico de forma manual. Se
-actualiza durante todo el desarrollo y su version final acompana la entrega.
+herramientas de IA, en que partes y que se verifico de forma manual.
 
 ## Equipo
 
@@ -26,101 +25,142 @@ ese integrante todavia no ha declarado su uso, no que no lo haya habido.
 
 ## Adriel S. Chaves Salazar
 
+### Resumen
+
+La herramienta se uso principalmente para la **infraestructura** del
+programa: la capa de linea de comandos, la interfaz grafica de juego humano,
+la organizacion de los modulos en capas y la escritura de archivos. El
+**nucleo evaluable** del trabajo, es decir el motor del juego y el agente de
+busqueda, se desarrollo de forma iterativa con la herramienta, pero cada
+decision algoritmica y cada argumento matematico fueron formulados,
+verificados y en varios casos corregidos por el estudiante.
+
 ### En que partes se uso
 
 | Componente | Grado de uso | Detalle |
 |---|---|---|
-| Estructura de directorios y convencion de nombrado | Alto | Propuesta inicial generada y luego ajustada a los requisitos del enunciado. |
-| Motor del juego (`src/dominio/`) | Alto | Codigo generado a partir de la especificacion del enunciado, revisado contra el texto original regla por regla. |
-| Lector de instancias y escritor de soluciones | Alto | Generados a partir del formato definido en el enunciado. |
-| Agente de busqueda A* (`src/agentes/`) | Alto | Formulacion del problema, funcion de costo, heuristicas e implementacion. Ver la seccion de verificacion. |
-| Validador independiente (`src/validacion/`) | Alto | Reimplementacion de las reglas y comprobaciones de arbitraje. |
-| Capa de linea de comandos (`src/cli/`) | Alto | Subcomandos, registro y despacho de argumentos. |
-| Interfaz grafica (`src/gui/`) | Alto | Ventana de juego humano en Tkinter. |
-| Pruebas automatizadas (`pruebas/`) | Alto | Casos generados a partir de los requisitos del enunciado y ampliados a mano. |
+| Capa de linea de comandos (`src/cli/`) | Alto | Subcomandos, registro, despacho de argumentos y codigos de salida. Infraestructura, no logica del juego. |
+| Interfaz grafica (`src/gui/`) | Alto | Ventana de juego humano en Tkinter. Infraestructura, no logica del juego. |
+| Organizacion en capas y convencion de nombrado | Alto | Estructura de directorios y patrones de nombre, ajustados varias veces segun las objeciones del estudiante. |
+| Lectura de instancias y escritura de soluciones | Alto | Generados a partir del formato definido en el enunciado. |
+| Bitacoras de resultados (`src/metricas/`) | Alto | Acumulacion de metricas en CSV. Infraestructura. |
+| Motor del juego (`src/dominio/`) | Medio | Escritura asistida, con las reglas verificadas linea por linea contra la seccion 2 del enunciado. |
+| Agente de busqueda (`src/agentes/`) | Medio | Escritura asistida. La formulacion del problema, la funcion de costo y el argumento de admisibilidad se verificaron a mano, y se corrigieron errores de la herramienta. |
+| Validador independiente (`src/validacion/`) | Medio | Escritura asistida, con la independencia respecto al motor verificada a mano. |
+| Pruebas automatizadas (`pruebas/`) | Alto | Casos derivados de los requisitos del enunciado. |
 | README y este documento | Alto | Redaccion asistida, contenido tecnico verificado. |
-| Decisiones de arquitectura | Medio | La IA propuso alternativas; la eleccion final fue del equipo. Ver abajo. |
+| Decisiones de arquitectura | Bajo | La herramienta propuso alternativas; la eleccion final fue del estudiante, y en varios casos contra la propuesta de la herramienta. |
 
 ### Como se uso
 
-El flujo de trabajo fue conversacional e iterativo. El enunciado completo se
-entrego a la herramienta como contexto y a partir de ahi se pidieron
-componentes concretos, se revisaron, se corrigieron y se volvieron a pedir.
-La herramienta no se uso de forma autonoma: cada respuesta paso por revision
-antes de entrar al repositorio.
+El flujo fue conversacional e iterativo. El enunciado completo se entrego
+como contexto y a partir de ahi se pidieron componentes concretos, se
+revisaron, se corrigieron y se volvieron a pedir. La herramienta no se uso de
+forma autonoma: cada respuesta paso por revision antes de entrar al
+repositorio, y varias fueron rechazadas por completo.
 
-El aporte intelectual del equipo se concentro en tres puntos:
+### Aportacion intelectual del estudiante
 
-1. **Definicion de los requisitos del sistema.** La division entre juego
-   humano y ejecucion por consola, la exigencia de codigo legible sin atajos
-   de sintaxis, el uso de espanol sin caracteres especiales, la aplicacion de
-   SOLID y la organizacion de entradas y salidas fueron decisiones del equipo
-   impuestas a la herramienta, no sugerencias suyas.
+**Requisitos del sistema.** La separacion entre juego humano y ejecucion por
+consola, la exigencia de codigo legible sin atajos de sintaxis, el uso de
+espanol sin caracteres especiales, la aplicacion de SOLID y la organizacion
+de entradas y salidas fueron decisiones impuestas a la herramienta, no
+sugerencias suyas.
 
-2. **Correccion de propuestas incorrectas.** Varias respuestas se rechazaron y
-   se rehicieron. El caso mas relevante: la herramienta propuso inicialmente
-   tres ejecutables separados (`main.py`, `jugar.py`, `validar.py`) y lo
-   justifico invocando el Principio de Responsabilidad Unica. El equipo
-   objeto que SOLID rige clases y modulos, no la cantidad de archivos con
-   punto de entrada, y exigio un punto de entrada unico con subcomandos. La
-   arquitectura actual es consecuencia de esa objecion. La herramienta
-   tambien confundio nombres de archivo de instancia y recomendo un cambio
-   que contradecia su propia convencion previa; el equipo lo detecto y lo
-   descarto.
+**Rechazo de propuestas incorrectas.** Se rechazaron y rehicieron varias
+respuestas. Los casos con consecuencias en el codigo entregado:
 
-3. **Verificacion contra el enunciado y contra la ejecucion real.** Todo lo
-   que se detalla en la seccion siguiente.
+1. *Tres ejecutables en lugar de uno.* La herramienta propuso `main.py`,
+   `jugar.py` y `validar.py` separados, y lo justifico invocando el Principio
+   de Responsabilidad Unica. El estudiante objeto que SOLID rige clases y
+   modulos, no la cantidad de archivos con punto de entrada, y exigio un
+   punto de entrada unico con subcomandos. La arquitectura actual es
+   consecuencia de esa objecion.
+
+2. *Busqueda en haz presentada como A\*.* La primera version del agente podaba
+   los sucesores a seis por nodo, lo que convierte A* en una busqueda en haz y
+   le quita la optimalidad. El estudiante exigio ajustarse al algoritmo visto
+   en clase, y la poda se elimino.
+
+3. *Heuristica innecesariamente compleja.* La primera heuristica contaba
+   "componentes congeladas" ademas de colores pendientes, con un argumento
+   costoso de evaluar y dificil de defender. Se sustituyo por la cota de
+   colores pendientes, que es mas simple y se justifica en tres frases.
+
+4. *Variantes de agente no pedidas.* La herramienta registro cuatro variantes
+   del agente de busqueda cuando el enunciado pide una. Se redujeron a la
+   variante del enunciado mas una linea base de Dijkstra que sirve al informe.
+
+5. *Nombrado inconsistente.* Los agentes se llamaban `busqueda` y
+   `busqueda_dijkstra`, dos criterios distintos para lo mismo. El estudiante
+   exigio un unico patron, `busqueda_<heuristica>`, que es el vigente.
 
 ### Que se verifico de forma manual
 
-**Reglas del juego.** Cada regla del codigo se comparo linea por linea con la
-seccion 2 del enunciado: representacion del estado, factor de ramificacion
-igual a las celdas vacias, fusion sobre la componente conexa maximal por
-vecindad ortogonal, ausencia de encadenamiento de fusiones, y las dos
-condiciones de termino. Se comprobo a mano el ejemplo de instancia del
-enunciado.
+**Reglas del juego.** Cada regla del codigo se comparo con la seccion 2 del
+enunciado: representacion del estado, factor de ramificacion igual a las
+celdas vacias, fusion sobre la componente conexa maximal por vecindad
+ortogonal, ausencia de encadenamiento de fusiones, y las dos condiciones de
+termino. El ejemplo de instancia del enunciado se resolvio a mano y se
+comparo con la salida del programa.
 
-**Funcion de costo del agente de busqueda.** Se verifico algebraicamente que
+**Funcion de costo.** Se verifico algebraicamente que
 `g_total = M(N^2 - 2) + ocupadas_finales` para todo camino meta, es decir que
 el termino constante es identico entre caminos y por tanto minimizar `g`
 equivale a minimizar celdas ocupadas. Tambien se comprobo que el costo nunca
 es negativo, condicion necesaria para las garantias de A*.
 
-**Admisibilidad de la heuristica.** El argumento de conservacion se reviso a
-mano: `liberaciones_futuras = (ocupadas + restantes) - ocupadas_finales`, y
-los dos aportes de la cota (colores pendientes y componentes congeladas) se
-verificaron disjuntos porque hablan de colores distintos. Se calculo a mano el
+**Admisibilidad de la heuristica.** El argumento de conservacion se derivo a
+mano:
+`liberaciones_futuras = ocupadas_ahora + R - ocupadas_finales`. Se calculo el
 caso del tablero 2x2 con dos fichas del mismo color, donde `h = h* = 5`, y se
-convirtio en la prueba `test_la_heuristica_admisible_no_sobreestima_en_un_caso_conocido`.
+convirtio en la prueba
+`test_la_heuristica_admisible_no_sobreestima_en_un_caso_conocido`.
+
+**Falta de consistencia.** El estudiante verifico que
+`h(n) - h(n') = costo(a) + (colores(n) - colores(n'))`, que excede `costo(a)`
+cuando un color desaparece de la secuencia pendiente. La heuristica es por
+tanto admisible pero no consistente, lo que obliga a reabrir nodos cerrados
+en A* sobre grafos. Esa correccion esta en el codigo y documentada en el
+README.
 
 **Independencia del validador.** Se reviso que `src/validacion/` no importe
 nada de `src/dominio/`, que use estructuras distintas (listas de Python frente
 a NumPy) y un recorrido distinto (profundidad con pila frente a anchura con
-cola), y que no contenga ninguna logica de decision. La coincidencia entre
-motor y validador sobre las soluciones producidas se comprueba en
-`test_el_camino_producido_es_legal_segun_el_validador`.
+cola), y que no contenga ninguna logica de decision.
 
 **Determinismo.** Se ejecutaron los agentes dos veces con la misma instancia y
-semilla y se compararon los archivos de solucion byte a byte. Esta
-comprobacion quedo automatizada en `test_determinismo_por_semilla`.
+semilla y se compararon los archivos de solucion. Quedo automatizado en
+`test_determinismo_por_semilla`.
 
-**Defecto encontrado y corregido a mano.** Al revisar la salida real de una
-ejecucion, el equipo noto que la barra de progreso se imprimia dos veces. La
-causa era que `SesionPartida.finalizar` notificaba a los observadores en cada
-llamada, y tanto la colocacion final como el ejecutor la invocaban. Se
-diagnostico leyendo el flujo de control, se corrigio haciendo idempotentes
-`iniciar` y `finalizar`, y se fijo con la prueba
-`test_los_observadores_reciben_una_sola_notificacion_de_fin`.
+### Defectos encontrados por el estudiante en el codigo asistido
 
-**Ejecucion completa.** Todos los comandos documentados en el README se
-ejecutaron en la maquina del equipo y su salida se verifico. La suite de
-pruebas pasa integra.
+1. *Barra de progreso duplicada.* `SesionPartida.finalizar` notificaba a los
+   observadores en cada llamada, y tanto la colocacion final como el ejecutor
+   la invocaban. Se corrigio haciendo idempotentes `iniciar` y `finalizar`, y
+   se fijo con `test_los_observadores_reciben_una_sola_notificacion_de_fin`.
+
+2. *Limite de tiempo excedido.* Con `--limite-tiempo 20` el agente tardaba
+   20.97 segundos, porque el completado avido ocurria fuera del presupuesto.
+   El enunciado descalifica al agente que excede el limite. Se corrigio
+   reservando una fraccion del presupuesto para esa fase.
+
+3. *Heuristica evaluada antes de podar.* En la version con poda, la heuristica
+   se evaluaba en los 36 sucesores para luego descartar 30. Se detecto al
+   observar que una ejecucion de 30 segundos no producia salida alguna.
+
+4. *Resultados no registrados.* Ninguna ejecucion de agente escribia en
+   `resultados/`. Se detecto revisando el directorio tras una tanda completa,
+   y se corrigio agregando la bitacora de ejecuciones.
+
+5. *Codigo muerto.* Se identificaron y eliminaron metodos que ninguna parte
+   del sistema llamaba, agregados por la herramienta durante iteraciones
+   anteriores.
 
 ### Que no se delego
 
 La regla de frontera del enunciado prohibe delegar en una biblioteca o en un
-tercero la construccion de aquello que constituye el objeto de aprendizaje.
-El equipo la interpreta asi:
+tercero la construccion de aquello que constituye el objeto de aprendizaje:
 
 - No se uso ninguna biblioteca de busqueda en grafos o en espacios de estados.
   La cola de prioridad es `heapq` de la biblioteca estandar, y el algoritmo A*
@@ -134,12 +174,11 @@ El equipo la interpreta asi:
   agentes deciden sus colocaciones con los algoritmos implementados en el
   repositorio. El programa no realiza ninguna llamada de red.
 
-Las bibliotecas externas usadas son NumPy, para arreglos contiguos y
-operaciones vectorizadas, y pytest, como marco de pruebas. Ambas pertenecen a
-las capas inferiores que el enunciado permite de forma expresa.
+Las unicas bibliotecas externas son NumPy y pytest, que el enunciado permite
+de forma expresa.
 
 Todo componente presente en la entrega puede ser explicado y fundamentado por
-el equipo.
+el estudiante.
 
 ## Daniel Duarte Cordero
 

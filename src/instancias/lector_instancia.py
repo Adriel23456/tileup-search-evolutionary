@@ -17,6 +17,13 @@ from src.instancias.errores import ErrorFormatoInstancia
 from src.instancias.instancia import Instancia
 
 
+# Marca de orden de bytes que Windows antepone a los archivos UTF-8. Hay que
+# descartarla antes de interpretar el contenido, porque de lo contrario el
+# primer campo del archivo llega con un caracter invisible pegado y el lector
+# lo rechaza con un mensaje que no explica nada.
+MARCA_DE_ORDEN_DE_BYTES = "\ufeff"
+
+
 class LectorInstancia:
     """
     Convierte un archivo de texto en un objeto Instancia.
@@ -48,6 +55,10 @@ class LectorInstancia:
     def leer_desde_texto(self, contenido: str,
                          nombre_instancia: str = "sin_nombre") -> Instancia:
         """Lee y valida una instancia a partir de su contenido en texto."""
+        if contenido.startswith(MARCA_DE_ORDEN_DE_BYTES) is True:
+            contenido = contenido[len(MARCA_DE_ORDEN_DE_BYTES):]
+
+            
         lineas_utiles = self._extraer_lineas_utiles(contenido)
 
         if len(lineas_utiles) < 2:

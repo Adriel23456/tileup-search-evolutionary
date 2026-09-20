@@ -68,3 +68,19 @@ def test_campo_no_entero_produce_error():
 
     with pytest.raises(ErrorFormatoInstancia):
         LectorInstancia().leer_desde_texto(contenido, "prueba")
+
+def test_una_instancia_con_marca_de_orden_de_bytes_se_lee_igual():
+    """
+    Un archivo guardado por Windows como UTF-8 con BOM debe leerse bien.
+
+    Notepad y muchas herramientas de Windows anteponen la marca de orden de
+    bytes al guardar en UTF-8. Sin descartarla, el primer campo del archivo
+    llega con un caracter invisible pegado y el lector lo rechaza.
+    """
+    contenido = "\ufeff4 3\n1\n1 2\n"
+
+    instancia = LectorInstancia().leer_desde_texto(contenido, "prueba")
+
+    assert instancia.dimension == 4
+    assert instancia.cantidad_colores == 3
+    assert instancia.cantidad_fichas == 1

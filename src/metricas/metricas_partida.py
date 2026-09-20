@@ -6,15 +6,19 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class MetricasPartida:
     """
-    Agrupa las metricas que el enunciado exige reportar por salida estandar.
+    Agrupa las metricas que el enunciado exige reportar por salida estandar:
+    fichas colocadas, celdas ocupadas, valor de la ficha mayor, tiempo
+    transcurrido y la medida de esfuerzo del algoritmo.
 
     El campo esfuerzo_algoritmo es generico a proposito: el agente de busqueda
-    reportara nodos expandidos y el evolutivo evaluaciones de aptitud, sin que
-    esta clase tenga que cambiar.
+    reporta nodos expandidos y el evolutivo reportara evaluaciones de aptitud,
+    sin que esta clase tenga que cambiar.
     """
 
     nombre_agente: str
     nombre_instancia: str
+    dimension: int
+    cantidad_colores: int
     semilla: int
     fichas_colocadas: int
     fichas_totales: int
@@ -40,18 +44,25 @@ class MetricasPartida:
             + " " + self.nombre_esfuerzo + "=" + str(self.esfuerzo_algoritmo)
         )
 
-    def como_diccionario(self) -> dict:
-        """Devuelve las metricas como diccionario para escribirlas en CSV."""
-        return {
-            "agente": self.nombre_agente,
-            "instancia": self.nombre_instancia,
-            "semilla": self.semilla,
-            "resultado": self.resultado,
-            "colocadas": self.fichas_colocadas,
-            "totales": self.fichas_totales,
-            "ocupadas": self.celdas_ocupadas,
-            "mayor": self.valor_ficha_mayor,
-            "tiempo_s": format(self.tiempo_segundos, ".6f"),
-            "esfuerzo": self.esfuerzo_algoritmo,
-            "nombre_esfuerzo": self.nombre_esfuerzo,
-        }
+    def como_fila_csv(self) -> list:
+        """
+        Devuelve las metricas como una fila de CSV.
+
+        El orden coincide con ENCABEZADO_COMPARACION de la bitacora de
+        ejecuciones. Cambiar uno obliga a cambiar el otro.
+        """
+        return [
+            self.nombre_agente,
+            self.nombre_instancia,
+            str(self.dimension),
+            str(self.cantidad_colores),
+            str(self.fichas_totales),
+            str(self.semilla),
+            self.resultado,
+            str(self.fichas_colocadas),
+            str(self.celdas_ocupadas),
+            str(self.valor_ficha_mayor),
+            format(self.tiempo_segundos, ".6f"),
+            str(self.esfuerzo_algoritmo),
+            self.nombre_esfuerzo,
+        ]

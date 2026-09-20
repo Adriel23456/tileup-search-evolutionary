@@ -2,17 +2,11 @@
 venv/
 __pycache__/
 *.py[cod]
-*.egg-info/
 .pytest_cache/
 .vscode/
 .idea/
 *.log
 
-datos/soluciones/humano/*.sol
-datos/soluciones/busqueda/*.sol
-datos/soluciones/evolutivo/*.sol
-datos/soluciones/aleatorio/*.sol
-resultados/humano/*.csv
-resultados/experimentos/*
-!datos/soluciones/*/.gitkeep
-!resultados/*/.gitkeep
+# Las soluciones y los CSV de resultados SI se versionan: el enunciado exige
+# entregar las instancias junto con las soluciones producidas, para que el
+# informe pueda verificarse con el validador.

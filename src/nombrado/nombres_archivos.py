@@ -68,3 +68,26 @@ def ruta_solucion_humana(nombre_instancia: str, numero_partida: int) -> str:
         nombre_agente=NOMBRE_AGENTE_HUMANO,
         semilla=numero_partida,
     )
+
+# Directorios donde se acumulan los resultados agregados.
+DIRECTORIO_RESULTADOS = "resultados"
+
+
+def ruta_bitacora_ejecuciones() -> str:
+    """
+    Devuelve la ruta del CSV que acumula las ejecuciones de agentes.
+
+    Patron: resultados/experimentos/comparacion_agentes.csv
+    """
+    return os.path.join(
+        DIRECTORIO_RESULTADOS, "experimentos", "comparacion_agentes.csv"
+    )
+
+
+def ruta_bitacora_humana() -> str:
+    """
+    Devuelve la ruta del CSV que acumula las partidas humanas.
+
+    Patron: resultados/humano/partidas_humanas.csv
+    """
+    return os.path.join(DIRECTORIO_RESULTADOS, "humano", "partidas_humanas.csv")

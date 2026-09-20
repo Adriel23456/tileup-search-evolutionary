@@ -126,6 +126,7 @@ class EjecutorAgente:
         sesion.finalizar()
         return colocaciones_rechazadas
 
+
     def _reemplazar_tiempo(self, metricas: MetricasPartida,
                            tiempo_planificacion: float) -> MetricasPartida:
         """
@@ -137,6 +138,8 @@ class EjecutorAgente:
         return MetricasPartida(
             nombre_agente=metricas.nombre_agente,
             nombre_instancia=metricas.nombre_instancia,
+            dimension=metricas.dimension,
+            cantidad_colores=metricas.cantidad_colores,
             semilla=metricas.semilla,
             fichas_colocadas=metricas.fichas_colocadas,
             fichas_totales=metricas.fichas_totales,

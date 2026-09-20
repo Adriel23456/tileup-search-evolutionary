@@ -14,7 +14,7 @@ evidencia real de correccion; si compartieran codigo, no seria evidencia de
 nada.
 """
 
-from typing import List, Optional, Tuple
+from typing import List, Optional, Set, Tuple
 
 
 # Desplazamientos de la vecindad ortogonal, en un orden distinto al del motor
@@ -28,15 +28,12 @@ VECINDAD_ORTOGONAL = (
 
 
 class ResultadoVerificacion:
-    """Describe lo que ocurrio al verificar una colocacion."""
+    """Veredicto de una colocacion verificada."""
 
-    def __init__(self, fue_legal: bool, motivo: str, tamano_grupo: int,
-                 valor_resultante: int) -> None:
-        """Agrupa el veredicto de una colocacion y sus consecuencias."""
+    def __init__(self, fue_legal: bool, motivo: str) -> None:
+        """Agrupa si la colocacion fue legal y por que."""
         self.fue_legal = fue_legal
         self.motivo = motivo
-        self.tamano_grupo = tamano_grupo
-        self.valor_resultante = valor_resultante
 
 
 class TableroVerificacion:
@@ -63,11 +60,6 @@ class TableroVerificacion:
     # ------------------------------------------------------------------
     # Consultas
     # ------------------------------------------------------------------
-
-    @property
-    def dimension(self) -> int:
-        """Devuelve el lado del tablero."""
-        return self._dimension
 
     def esta_dentro(self, fila: int, columna: int) -> bool:
         """Indica si la coordenada cae dentro de los limites del tablero."""
@@ -144,12 +136,7 @@ class TableroVerificacion:
 
     def aplicar_colocacion(self, fila: int, columna: int, color: int,
                            valor: int) -> ResultadoVerificacion:
-        """
-        Coloca una ficha y aplica la fusion, verificando la legalidad.
-
-        Devuelve un resultado que indica si la colocacion fue legal y, en caso
-        afirmativo, el tamano del grupo fusionado y el valor resultante.
-        """
+        """Coloca una ficha y aplica la fusion, verificando la legalidad."""
         if self.esta_dentro(fila, columna) is False:
             return ResultadoVerificacion(
                 fue_legal=False,
@@ -158,8 +145,6 @@ class TableroVerificacion:
                     + ") esta fuera de un tablero de lado "
                     + str(self._dimension)
                 ),
-                tamano_grupo=0,
-                valor_resultante=0,
             )
 
         if self.esta_libre(fila, columna) is False:
@@ -169,8 +154,6 @@ class TableroVerificacion:
                     "la celda (" + str(fila) + ", " + str(columna)
                     + ") ya estaba ocupada"
                 ),
-                tamano_grupo=0,
-                valor_resultante=0,
             )
 
         self._celdas[fila][columna] = (color, valor)
@@ -182,8 +165,6 @@ class TableroVerificacion:
             return ResultadoVerificacion(
                 fue_legal=True,
                 motivo="colocacion sin fusion",
-                tamano_grupo=1,
-                valor_resultante=valor,
             )
 
         valor_acumulado = 0
@@ -201,8 +182,6 @@ class TableroVerificacion:
         return ResultadoVerificacion(
             fue_legal=True,
             motivo="fusion de " + str(tamano_grupo) + " fichas",
-            tamano_grupo=tamano_grupo,
-            valor_resultante=valor_acumulado,
         )
 
     # ------------------------------------------------------------------
@@ -217,7 +196,7 @@ class TableroVerificacion:
         Se usa una pila explicita en lugar de recursion, para que un tablero
         grande no agote la pila de llamadas de Python.
         """
-        visitadas = set()
+        visitadas: Set[Tuple[int, int]] = set()
         grupo: List[Tuple[int, int]] = []
         pendientes: List[Tuple[int, int]] = [(fila, columna)]
 

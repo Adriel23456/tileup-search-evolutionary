@@ -71,20 +71,6 @@ class EstadoPartida:
 
         return self._instancia.obtener_ficha(self._indice_ficha_actual)
 
-    def ficha_siguiente_a_la_pendiente(self) -> Optional[Ficha]:
-        """
-        Devuelve la ficha posterior a la pendiente, o None si no existe.
-
-        Es informacion legitima: el problema es completamente observable y el
-        agente conoce toda la secuencia desde el inicio.
-        """
-        indice_siguiente = self._indice_ficha_actual + 1
-
-        if indice_siguiente >= self._instancia.cantidad_fichas:
-            return None
-
-        return self._instancia.obtener_ficha(indice_siguiente)
-
     def avanzar_ficha(self) -> None:
         """Consume la ficha pendiente actual, avanzando el indice."""
         self._indice_ficha_actual = self._indice_ficha_actual + 1

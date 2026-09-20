@@ -33,7 +33,7 @@ class MotorTileUp:
 
     El motor no guarda estado propio: recibe un EstadoPartida, lo modifica y
     devuelve el resultado. Asi la misma instancia del motor puede servir a
-    muchas partidas en paralelo sin condiciones de carrera.
+    muchas partidas sin interferencia entre ellas.
     """
 
     # ------------------------------------------------------------------
@@ -117,7 +117,7 @@ class MotorTileUp:
                 estado, componente
             )
 
-            celdas_fusionadas = self._retirar_componente(estado, componente)
+            self._retirar_componente(estado, componente)
 
             ficha_resultante = Ficha(
                 color=ficha_pendiente.color,
@@ -131,11 +131,9 @@ class MotorTileUp:
                 indice_ficha=indice_ficha,
                 fila=fila,
                 columna=columna,
-                color=ficha_pendiente.color,
                 hubo_fusion=True,
                 tamano_componente=tamano_componente,
                 valor_resultante=valor_acumulado,
-                celdas_fusionadas=tuple(celdas_fusionadas),
             )
 
         # Paso 4: componente de una sola ficha, no hay fusion.
@@ -145,11 +143,9 @@ class MotorTileUp:
             indice_ficha=indice_ficha,
             fila=fila,
             columna=columna,
-            color=ficha_pendiente.color,
             hubo_fusion=False,
             tamano_componente=1,
             valor_resultante=ficha_pendiente.valor,
-            celdas_fusionadas=tuple(),
         )
 
     # ------------------------------------------------------------------
@@ -197,12 +193,7 @@ class MotorTileUp:
         return valor_acumulado
 
     def _retirar_componente(self, estado: EstadoPartida,
-                            componente: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
-        """Vacia todas las celdas de la componente y devuelve sus coordenadas."""
-        celdas_retiradas: List[Tuple[int, int]] = []
-
+                            componente: List[Tuple[int, int]]) -> None:
+        """Vacia todas las celdas de la componente."""
         for fila_celda, columna_celda in componente:
             estado.tablero.vaciar_celda(fila_celda, columna_celda)
-            celdas_retiradas.append((fila_celda, columna_celda))
-
-        return celdas_retiradas

@@ -21,6 +21,9 @@ CLAVE_COLOCADAS = "colocadas="
 CLAVE_OCUPADAS = "ocupadas="
 CLAVE_MAYOR = "mayor="
 
+# Marca de orden de bytes que Windows antepone a los archivos UTF-8.
+MARCA_DE_ORDEN_DE_BYTES = "\ufeff"
+
 
 class ResumenDeclarado:
     """Valores que el archivo de solucion afirma haber alcanzado."""
@@ -30,14 +33,6 @@ class ResumenDeclarado:
         self.colocadas = colocadas
         self.ocupadas = ocupadas
         self.mayor = mayor
-
-    def como_texto(self) -> str:
-        """Genera la representacion textual del resumen declarado."""
-        return (
-            "colocadas=" + str(self.colocadas)
-            + " ocupadas=" + str(self.ocupadas)
-            + " mayor=" + str(self.mayor)
-        )
 
 
 class SolucionLeida:
@@ -81,6 +76,10 @@ class LectorSolucion:
     def leer_desde_texto(self, contenido: str,
                          nombre: str = "sin_nombre") -> SolucionLeida:
         """Lee e interpreta una solucion a partir de su contenido en texto."""
+        
+        if contenido.startswith(MARCA_DE_ORDEN_DE_BYTES) is True:
+            contenido = contenido[len(MARCA_DE_ORDEN_DE_BYTES):]
+
         colocaciones: List[Tuple[int, int, int]] = []
         resumen: Optional[ResumenDeclarado] = None
         numero_linea = 0

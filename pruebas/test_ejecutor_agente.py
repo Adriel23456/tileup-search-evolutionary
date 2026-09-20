@@ -94,7 +94,7 @@ def test_semillas_distintas_producen_soluciones_distintas(tmp_path):
 def test_los_observadores_reciben_una_sola_notificacion_de_fin():
     """La sesion no debe notificar el fin de la partida mas de una vez."""
     from src.dominio.estado_partida import EstadoPartida
-    from src.dominio.motor import EstadoTerminacion
+    from src.dominio.motor import EstadoTerminacion, MotorTileUp
     from src.dominio.resultado_colocacion import ResultadoColocacion
     from src.partidas.observador import ObservadorPartida
     from src.partidas.sesion_partida import SesionPartida
@@ -123,11 +123,14 @@ def test_los_observadores_reciben_una_sola_notificacion_de_fin():
     contador = ObservadorContador()
     sesion.agregar_observador(contador)
 
+    motor = MotorTileUp()
+
     sesion.iniciar()
     sesion.iniciar()
 
     for indice in range(instancia.cantidad_fichas):
-        fila, columna = sesion.acciones_legales()[0]
+        celdas_disponibles = motor.acciones_legales(sesion.estado)
+        fila, columna = celdas_disponibles[0]
         sesion.aplicar_colocacion(fila, columna)
 
     sesion.finalizar()

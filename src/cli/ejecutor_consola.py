@@ -26,6 +26,7 @@ from src.instancias.instancia import Instancia
 from src.instancias.lector_instancia import LectorInstancia
 from src.nombrado import nombres_archivos
 from src.partidas.ejecutor_agente import EjecutorAgente
+from src.metricas.bitacora_ejecuciones import BitacoraEjecuciones
 
 
 class EjecutorConsola:
@@ -36,6 +37,9 @@ class EjecutorConsola:
         self._lector_instancia = LectorInstancia()
         self._registro_agentes = RegistroAgentes()
         self._ejecutor_agente = EjecutorAgente()
+        self._bitacora = BitacoraEjecuciones(
+            nombres_archivos.ruta_bitacora_ejecuciones()
+        )
 
     # ------------------------------------------------------------------
     # Ejecucion de un solo agente
@@ -167,8 +171,23 @@ class EjecutorConsola:
             observador=observador,
         )
 
+        # La fila de la bitacora se escribe con las mismas metricas que se
+        # imprimen, de modo que el CSV y la salida estandar nunca difieren.
+        self._bitacora.registrar(
+            metricas=resultado.metricas,
+            archivo_solucion=ruta_final,
+        )
+        
+        if hasattr(agente, "alcanzo_la_meta") is True:
+            if agente.alcanzo_la_meta is False:
+                print(
+                    "Nota: la busqueda se corto por tiempo o por nodos; la "
+                    "solucion se completo con la politica avida."
+                )
+
         print(resultado.metricas.como_linea_estandar())
         print("solucion=" + resultado.ruta_solucion)
+        print("bitacora=" + nombres_archivos.ruta_bitacora_ejecuciones())
 
         if resultado.colocaciones_rechazadas > 0:
             print(

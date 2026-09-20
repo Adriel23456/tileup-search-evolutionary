@@ -1,6 +1,6 @@
 """Representacion en memoria de una instancia de TileUp."""
 
-from typing import List, Sequence
+from typing import Sequence
 
 from src.dominio.ficha import Ficha
 
@@ -74,12 +74,8 @@ class Instancia:
 
         return self._fichas[indice]
 
-    def fichas_como_lista(self) -> List[Ficha]:
-        """Devuelve una copia en lista de la secuencia completa."""
-        return list(self._fichas)
-
     def resumen(self) -> str:
-        """Genera una linea de resumen para la GUI y la consola."""
+        """Genera una linea de resumen para la consola y la ventana de juego."""
         return (
             self._nombre
             + "  (N=" + str(self._dimension)

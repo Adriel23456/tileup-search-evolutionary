@@ -11,7 +11,6 @@ from typing import Dict, List
 
 from src.cli.comando import Comando
 from src.cli.comandos.comando_agentes import ComandoAgentes
-from src.cli.comandos.comando_backend import ComandoBackend
 from src.cli.comandos.comando_instancia import ComandoInstancia
 from src.cli.comandos.comando_jugar import ComandoJugar
 from src.cli.comandos.comando_resolver import ComandoResolver
@@ -42,7 +41,6 @@ class RegistroComandos:
         self.registrar(ComandoJugar())
         self.registrar(ComandoInstancia())
         self.registrar(ComandoAgentes())
-        self.registrar(ComandoBackend())
 
     def registrar(self, comando: Comando) -> None:
         """Inscribe un subcomando bajo su propio nombre."""

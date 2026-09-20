@@ -1,6 +1,12 @@
 """
 Agente de busqueda informada A* para TileUp.
 
+La implementacion sigue el pseudocodigo visto en clase: una lista abierta que
+es una cola de prioridad ordenada por f = g + h, una lista cerrada que evita
+reprocesar estados, un diccionario g con el costo real de llegar a cada
+estado y un diccionario de punteros al padre que permite reconstruir el
+camino cuando se alcanza la meta.
+
 Formulacion del problema
 ------------------------
 
@@ -13,138 +19,99 @@ Estado
 Operador de sucesion
     Colocar la ficha i en cualquier celda vacia, aplicando la fusion segun las
     reglas del motor. El factor de ramificacion es exactamente la cantidad de
-    celdas vacias.
+    celdas vacias, tal como dice el enunciado.
 
 Costo de accion
-    Sea liberadas(a) = |G| - 1, el numero de celdas que la fusion libero
-    (cero cuando no hubo fusion). Se define:
+    Sea liberadas(a) = |G| - 1, las celdas que la fusion libero (cero cuando
+    no hubo fusion). Se define:
 
         costo(a) = (N^2 - 1) - liberadas(a)
 
-    Esta eleccion cumple dos condiciones necesarias a la vez:
+    Dos razones para esta forma:
 
-      - Es no negativa, porque |G| <= N^2. La alternativa obvia, el cambio en
-        celdas ocupadas, vale 2 - |G| y es negativa en cuanto hay fusion; A*
-        pierde sus garantias con costos negativos.
+      a) Es no negativa, porque |G| <= N^2. El costo "natural" seria el cambio
+         en celdas ocupadas, que vale 1 - |G| y es negativo en cuanto hay
+         fusion; con costos negativos A* pierde sus garantias.
 
-      - Es exacta respecto al objetivo. Todo camino meta tiene exactamente M
-        acciones y suma(liberadas) = M - ocupadas_finales, de modo que
+      b) Minimiza exactamente lo que interesa. Todo camino meta tiene M
+         acciones y suma(liberadas) = M - ocupadas_finales, de modo que
 
-            g_total = M * (N^2 - 2) + ocupadas_finales
+             g_total = M * (N^2 - 2) + ocupadas_finales
 
-        El termino constante es identico para todos los caminos meta, asi que
-        minimizar g equivale exactamente a minimizar las celdas ocupadas al
-        terminar, que es el segundo criterio de desempate del concurso.
+         El primer termino es identico para todos los caminos meta, asi que
+         minimizar g equivale a minimizar las celdas ocupadas al terminar,
+         que es el segundo criterio del concurso.
 
 Prueba de meta
     i == M, es decir, la secuencia completa fue consumida.
 
 Heuristica
-    Ver el modulo heuristicas.py. La opcion por defecto es admisible y se
-    justifica alli con el argumento de conservacion completo.
+    Ver heuristicas.py. La de por defecto es admisible y alli se justifica.
 
-Comportamiento anytime
-----------------------
+Limite de tiempo
+----------------
 
 El espacio de estados es enorme: para N = 6 y M = 24 el arbol tiene del orden
-de 36^24 nodos. A* exacto solo termina en instancias diminutas, de modo que el
-agente incorpora tres mecanismos que el enunciado exige o permite:
-
-  1. Limite de tiempo. Se comprueba en cada expansion.
-  2. Limite de nodos expandidos, para acotar tambien la memoria.
-  3. Completado avido. Si la busqueda se detiene sin alcanzar la meta, se toma
-     el mejor nodo visto y se termina la partida con una politica avida
-     determinista. Asi el agente siempre entrega una solucion, como pide el
-     enunciado.
-
-Ademas se puede limitar la cantidad de sucesores que se generan por nodo. Con
-ese limite activo el algoritmo deja de ser A* puro y se convierte en una
-busqueda en haz ordenada por f: gana tratabilidad y pierde completitud y
-optimalidad. Se declara de forma expresa y se desactiva pasando cero.
+de 36^24 nodos, de modo que A* solo termina en instancias pequenas. El
+enunciado exige que, alcanzado el limite, el agente entregue la mejor
+solucion encontrada hasta ese momento. Por eso el agente recuerda el mejor
+estado visto y, si la busqueda se corta, completa la partida colocando cada
+ficha restante en la celda de menor costo inmediato.
 """
 
 import heapq
-import itertools
 import time
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from src.agentes.agente import Agente
-from src.agentes.heuristicas import Heuristica, HeuristicaCotaLiberaciones
+from src.agentes.heuristicas import Heuristica, HeuristicaColoresPendientes
 from src.dominio.estado_partida import EstadoPartida
 from src.dominio.motor import MotorTileUp
 
 
-# Cantidad de nodos expandidos por defecto antes de detener la busqueda.
-LIMITE_NODOS_POR_DEFECTO = 200000
+# Tope de nodos expandidos. Existe solo para acotar la memoria: cada estado
+# visitado se conserva para poder reconstruir el camino.
+LIMITE_NODOS_POR_DEFECTO = 120000
 
-# Cantidad de sucesores conservados por nodo. Cero significa todos, es decir
-# A* exacto sin poda.
-MAXIMO_SUCESORES_POR_DEFECTO = 6
-
-
-class NodoBusqueda:
-    """
-    Nodo del arbol de busqueda.
-
-    Guarda el estado, el costo real acumulado, el valor heuristico y un
-    puntero al padre. El puntero al padre es lo que permite reconstruir el
-    camino cuando se alcanza la meta, igual que en el A* clasico sobre grafos.
-    """
-
-    __slots__ = (
-        "estado",
-        "costo_acumulado",
-        "valor_heuristico",
-        "padre",
-        "accion",
-        "profundidad",
-    )
-
-    def __init__(self, estado: EstadoPartida, costo_acumulado: int,
-                 valor_heuristico: int, padre: Optional["NodoBusqueda"],
-                 accion: Optional[Tuple[int, int]], profundidad: int) -> None:
-        """Construye el nodo con todos sus campos."""
-        self.estado = estado
-        self.costo_acumulado = costo_acumulado
-        self.valor_heuristico = valor_heuristico
-        self.padre = padre
-        self.accion = accion
-        self.profundidad = profundidad
-
-    @property
-    def valor_f(self) -> int:
-        """Devuelve f(n) = g(n) + h(n), el valor por el que se ordena."""
-        return self.costo_acumulado + self.valor_heuristico
-
+# Fraccion del limite de tiempo que se reserva para completar la partida de
+# forma avida cuando la busqueda no alcanzo la meta.
+FRACCION_MARGEN_COMPLETADO = 0.15
 
 class AgenteBusquedaAEstrella(Agente):
     """Resuelve una instancia de TileUp con busqueda informada A*."""
 
-    def __init__(self, semilla: int,
+    def __init__(self, semilla: int, nombre: str,
                  heuristica: Optional[Heuristica] = None,
-                 limite_nodos: int = LIMITE_NODOS_POR_DEFECTO,
-                 maximo_sucesores: int = MAXIMO_SUCESORES_POR_DEFECTO) -> None:
+                 limite_nodos: int = LIMITE_NODOS_POR_DEFECTO) -> None:
         """
-        Construye el agente con su heuristica y sus limites de recursos.
+        Construye el agente con su nombre, su heuristica y su tope de nodos.
 
-        La semilla se conserva por contrato del enunciado, aunque este agente
-        es determinista por construccion: todos los desempates se resuelven
-        por reglas fijas y no por azar, de modo que dos ejecuciones con la
-        misma instancia producen siempre la misma solucion.
+        El nombre se recibe desde el registro porque identifica la variante:
+        todas son A* y solo difieren en la heuristica, de modo que el nombre
+        sigue el patron busqueda_<heuristica>. Ese nombre decide tambien el
+        directorio donde se escribe la solucion.
+
+        La semilla se recibe por contrato del enunciado, pero este agente es
+        determinista por construccion: no usa ninguna fuente de azar y todos
+        los desempates se resuelven por reglas fijas.
         """
         self._semilla = semilla
+        self._nombre = nombre
 
         if heuristica is None:
-            self._heuristica = HeuristicaCotaLiberaciones()
+            self._heuristica = HeuristicaColoresPendientes()
         else:
             self._heuristica = heuristica
 
         self._limite_nodos = limite_nodos
-        self._maximo_sucesores = maximo_sucesores
-
         self._motor = MotorTileUp()
         self._nodos_expandidos = 0
-        self._contador_de_insercion = itertools.count()
+
+        # Indica si la ultima planificacion alcanzo la meta por busqueda o si
+        # se corto por tiempo o por nodos y termino con la politica avida. Es
+        # el dato que permite reportar en el informe en que punto A* deja de
+        # resolver dentro del limite.
+        self._alcanzo_la_meta = False
 
     # ------------------------------------------------------------------
     # Identificacion
@@ -153,7 +120,7 @@ class AgenteBusquedaAEstrella(Agente):
     @property
     def nombre(self) -> str:
         """Nombre corto del agente."""
-        return "busqueda"
+        return self._nombre
 
     @property
     def nombre_medida_esfuerzo(self) -> str:
@@ -164,6 +131,12 @@ class AgenteBusquedaAEstrella(Agente):
     def heuristica(self) -> Heuristica:
         """Devuelve la heuristica configurada, para informarla en el reporte."""
         return self._heuristica
+
+
+    @property
+    def alcanzo_la_meta(self) -> bool:
+        """Indica si la ultima planificacion termino por busqueda completa."""
+        return self._alcanzo_la_meta
 
     def esfuerzo_acumulado(self) -> int:
         """Devuelve cuantos nodos se expandieron en la ultima planificacion."""
@@ -178,33 +151,43 @@ class AgenteBusquedaAEstrella(Agente):
         """
         Ejecuta A* y devuelve la secuencia de colocaciones decidida.
 
-        Si la busqueda alcanza la meta, devuelve el camino optimo respecto a
-        la heuristica usada. Si se agota el tiempo o el limite de nodos,
-        devuelve el mejor camino parcial encontrado, completado con la
-        politica avida.
+        Estructuras, con los nombres del pseudocodigo de clase:
+          lista_abierta  cola de prioridad con (f, h, orden, clave)
+          lista_cerrada  claves ya expandidas
+          g              costo real de llegar a cada clave
+          padre          clave del hijo -> (clave del padre, accion)
+          estados        clave -> el EstadoPartida correspondiente
         """
         self._nodos_expandidos = 0
-        self._contador_de_insercion = itertools.count()
+        self._alcanzo_la_meta = False
 
-        instante_limite = time.perf_counter() + limite_tiempo_segundos
-
-        nodo_raiz = NodoBusqueda(
-            estado=estado_inicial.copiar(),
-            costo_acumulado=0,
-            valor_heuristico=self._heuristica.estimar(estado_inicial),
-            padre=None,
-            accion=None,
-            profundidad=0,
+        # El completado avido ocurre despues de que la busqueda se detiene y
+        # tambien consume tiempo. Se le reserva una fraccion del presupuesto
+        # para que el total nunca exceda el limite que recibio el agente: un
+        # agente que se pasa del limite queda fuera del concurso.
+        margen_para_completar = limite_tiempo_segundos * FRACCION_MARGEN_COMPLETADO
+        instante_limite = (
+            time.perf_counter() + limite_tiempo_segundos - margen_para_completar
         )
 
-        if self._motor.es_meta(nodo_raiz.estado) is True:
-            return []
+        estado_raiz = estado_inicial.copiar()
+        clave_raiz = self._clave_del_estado(estado_raiz)
 
-        lista_abierta: List[Tuple[int, int, int, NodoBusqueda]] = []
-        self._insertar_en_abierta(lista_abierta, nodo_raiz)
-
+        lista_abierta: List[Tuple[int, int, int, bytes]] = []
         lista_cerrada = set()
-        mejor_nodo = nodo_raiz
+
+        g: Dict[bytes, int] = {clave_raiz: 0}
+        padre: Dict[bytes, Tuple[bytes, Tuple[int, int]]] = {}
+        estados: Dict[bytes, EstadoPartida] = {clave_raiz: estado_raiz}
+
+        orden_de_insercion = 0
+        heuristica_raiz = self._heuristica.estimar(estado_raiz)
+        heapq.heappush(
+            lista_abierta,
+            (heuristica_raiz, heuristica_raiz, orden_de_insercion, clave_raiz),
+        )
+
+        clave_mejor = clave_raiz
 
         while len(lista_abierta) > 0:
             if time.perf_counter() >= instante_limite:
@@ -213,223 +196,142 @@ class AgenteBusquedaAEstrella(Agente):
             if self._nodos_expandidos >= self._limite_nodos:
                 break
 
-            nodo_actual = heapq.heappop(lista_abierta)[3]
-            clave_actual = self._construir_clave(nodo_actual)
+            valor_f, valor_h, orden, clave_actual = heapq.heappop(lista_abierta)
 
             if clave_actual in lista_cerrada:
                 continue
 
+            estado_actual = estados[clave_actual]
+
+            if self._motor.es_meta(estado_actual) is True:
+                self._alcanzo_la_meta = True
+                return self._reconstruir_camino(padre, clave_actual)
+
             lista_cerrada.add(clave_actual)
             self._nodos_expandidos = self._nodos_expandidos + 1
 
-            if self._motor.es_meta(nodo_actual.estado) is True:
-                return self._reconstruir_camino(nodo_actual)
+            celdas_disponibles = self._motor.acciones_legales(estado_actual)
 
-            sucesores = self._generar_sucesores(nodo_actual)
+            for fila, columna in celdas_disponibles:
+                estado_sucesor = estado_actual.copiar()
+                resultado = self._motor.colocar(estado_sucesor, fila, columna)
 
-            for nodo_sucesor in sucesores:
-                clave_sucesor = self._construir_clave(nodo_sucesor)
+                clave_sucesor = self._clave_del_estado(estado_sucesor)
 
-                if clave_sucesor in lista_cerrada:
+                costo_de_la_accion = self._costo_de_la_accion(
+                    estado_sucesor, resultado.tamano_componente
+                )
+                g_tentativo = g[clave_actual] + costo_de_la_accion
+
+                if clave_sucesor in g and g_tentativo >= g[clave_sucesor]:
                     continue
 
-                if self._es_mejor_que(nodo_sucesor, mejor_nodo) is True:
-                    mejor_nodo = nodo_sucesor
+                # La heuristica es admisible pero no consistente: al consumir
+                # la ultima ficha de un color, h cae mas de lo que cuesta la
+                # accion. Con una heuristica inconsistente, un nodo ya cerrado
+                # puede alcanzarse despues por un camino mas barato, de modo
+                # que hay que reabrirlo para no perder el optimo.
+                if clave_sucesor in lista_cerrada:
+                    lista_cerrada.remove(clave_sucesor)
 
-                self._insertar_en_abierta(lista_abierta, nodo_sucesor)
+                g[clave_sucesor] = g_tentativo
+                padre[clave_sucesor] = (clave_actual, (fila, columna))
+                estados[clave_sucesor] = estado_sucesor
 
-        return self._completar_con_avidez(mejor_nodo)
+                heuristica_sucesor = self._heuristica.estimar(estado_sucesor)
+                orden_de_insercion = orden_de_insercion + 1
+
+                heapq.heappush(
+                    lista_abierta,
+                    (
+                        g_tentativo + heuristica_sucesor,
+                        heuristica_sucesor,
+                        orden_de_insercion,
+                        clave_sucesor,
+                    ),
+                )
+
+                if self._es_mejor(estado_sucesor, estados[clave_mejor]) is True:
+                    clave_mejor = clave_sucesor
+
+        return self._completar_desde_el_mejor(padre, estados, clave_mejor)
 
     # ------------------------------------------------------------------
-    # Lista abierta y cerrada
+    # Costo, clave y reconstruccion
     # ------------------------------------------------------------------
 
-    def _insertar_en_abierta(self, lista_abierta: list,
-                             nodo: NodoBusqueda) -> None:
+    def _clave_del_estado(self, estado: EstadoPartida) -> bytes:
         """
-        Inserta un nodo en la cola de prioridad ordenada por f.
+        Construye la clave con la que se identifica un estado.
 
-        El desempate es de tres niveles y es lo que hace la busqueda
-        deterministica:
-          1. Menor f gana.
-          2. A igual f, menor h gana, lo que prefiere los nodos mas cercanos
-             a la meta y acelera el descenso.
-          3. A igual f y h, gana el insertado primero, gracias a un contador
-             monotono que ademas evita que la cola tenga que comparar nodos
-             entre si.
-        """
-        orden_de_insercion = next(self._contador_de_insercion)
-
-        entrada = (
-            nodo.valor_f,
-            nodo.valor_heuristico,
-            orden_de_insercion,
-            nodo,
-        )
-
-        heapq.heappush(lista_abierta, entrada)
-
-    def _construir_clave(self, nodo: NodoBusqueda) -> tuple:
-        """
-        Construye la clave de la lista cerrada.
-
-        Dos nodos representan el mismo estado cuando coinciden el contenido
-        del tablero y el indice de la ficha pendiente. El indice es
-        imprescindible: el mismo tablero con distinta ficha pendiente son
-        situaciones completamente distintas.
+        Dos estados son el mismo cuando coinciden el contenido del tablero y
+        el indice de la ficha pendiente. El indice es imprescindible: el mismo
+        tablero con distinta ficha pendiente son situaciones distintas.
         """
         return (
-            nodo.estado.tablero.clave_hash(),
-            nodo.estado.indice_ficha_actual,
+            estado.tablero.clave_hash()
+            + estado.indice_ficha_actual.to_bytes(4, "big")
         )
 
-    # ------------------------------------------------------------------
-    # Generacion de sucesores
-    # ------------------------------------------------------------------
-
-    def _generar_sucesores(self, nodo: NodoBusqueda) -> List[NodoBusqueda]:
-        """
-        Genera los nodos hijos del nodo indicado.
-
-        La generacion ocurre en dos fases separadas a proposito:
-
-          1. Se aplica cada colocacion legal y se calcula su costo, que es una
-             operacion barata: una resta sobre el tamano de la componente que
-             el motor ya devolvio.
-          2. Solo sobre los sucesores que sobreviven a la poda se evalua la
-             heuristica, que es la operacion cara porque recorre el tablero
-             entero contando componentes congeladas.
-
-        Evaluar la heuristica antes de podar significaba pagarla tambien por
-        los sucesores descartados. Con N = 6 eso son 36 evaluaciones por nodo
-        en lugar de 6, seis veces mas trabajo para el mismo resultado.
-
-        Cuando maximo_sucesores es cero no hay poda y ambas fases recorren el
-        mismo conjunto, de modo que A* exacto no cambia su comportamiento.
-        """
-        celdas_disponibles = self._motor.acciones_legales(nodo.estado)
-        candidatos: List[tuple] = []
-        tableros_ya_generados = set()
-
-        for fila, columna in celdas_disponibles:
-            estado_sucesor = nodo.estado.copiar()
-            resultado = self._motor.colocar(estado_sucesor, fila, columna)
-
-            clave_del_tablero = estado_sucesor.tablero.clave_hash()
-
-            if clave_del_tablero in tableros_ya_generados:
-                continue
-
-            tableros_ya_generados.add(clave_del_tablero)
-
-            costo_de_la_accion = self._calcular_costo(
-                estado_sucesor, resultado.tamano_componente
-            )
-
-            clave_de_orden = (
-                costo_de_la_accion,
-                estado_sucesor.tablero.cantidad_ocupadas,
-                fila,
-                columna,
-            )
-
-            candidatos.append(
-                (clave_de_orden, costo_de_la_accion, estado_sucesor, fila, columna)
-            )
-
-        candidatos_conservados = self._podar_candidatos(candidatos)
-
-        return self._construir_nodos(nodo, candidatos_conservados)
-
-    def _podar_candidatos(self, candidatos: List[tuple]) -> List[tuple]:
-        """
-        Conserva solo los mejores candidatos segun su costo inmediato.
-
-        Con maximo_sucesores en cero se devuelven todos, lo que mantiene A*
-        exacto. Con un valor positivo la busqueda se convierte en un haz
-        ordenado por f, lo que se declara en la documentacion del agente.
-        """
-        if self._maximo_sucesores <= 0:
-            return candidatos
-
-        if len(candidatos) <= self._maximo_sucesores:
-            return candidatos
-
-        candidatos.sort(key=self._extraer_clave_de_orden)
-        return candidatos[:self._maximo_sucesores]
-
-    def _extraer_clave_de_orden(self, candidato: tuple) -> tuple:
-        """Devuelve la clave de ordenamiento de un candidato."""
-        return candidato[0]
-
-    def _construir_nodos(self, nodo_padre: NodoBusqueda,
-                         candidatos: List[tuple]) -> List[NodoBusqueda]:
-        """Evalua la heuristica y arma el nodo definitivo de cada candidato."""
-        sucesores: List[NodoBusqueda] = []
-
-        for candidato in candidatos:
-            clave_de_orden, costo_de_la_accion, estado_sucesor, fila, columna = candidato
-
-            nodo_sucesor = NodoBusqueda(
-                estado=estado_sucesor,
-                costo_acumulado=nodo_padre.costo_acumulado + costo_de_la_accion,
-                valor_heuristico=self._heuristica.estimar(estado_sucesor),
-                padre=nodo_padre,
-                accion=(fila, columna),
-                profundidad=nodo_padre.profundidad + 1,
-            )
-
-            sucesores.append(nodo_sucesor)
-
-        return sucesores
-
-    def _calcular_costo(self, estado: EstadoPartida,
-                        tamano_componente: int) -> int:
-        """
-        Calcula el costo de la accion que produjo este estado.
-
-        costo = (N^2 - 1) - liberadas, con liberadas = |G| - 1.
-        """
+    def _costo_de_la_accion(self, estado: EstadoPartida,
+                            tamano_componente: int) -> int:
+        """Calcula costo = (N^2 - 1) - liberadas, con liberadas = |G| - 1."""
         celdas_liberadas = tamano_componente - 1
         costo_maximo_por_accion = estado.tablero.cantidad_celdas - 1
 
         return costo_maximo_por_accion - celdas_liberadas
 
+    def _reconstruir_camino(self, padre: dict,
+                            clave: bytes) -> List[Tuple[int, int]]:
+        """
+        Recorre los punteros al padre hacia atras para rearmar el camino.
+
+        Sin estos punteros la busqueda conoceria el costo del camino pero no
+        el camino en si, tal como se advirtio en clase.
+        """
+        acciones: List[Tuple[int, int]] = []
+        clave_actual = clave
+
+        while clave_actual in padre:
+            clave_padre, accion = padre[clave_actual]
+            acciones.append(accion)
+            clave_actual = clave_padre
+
+        acciones.reverse()
+        return acciones
+
     # ------------------------------------------------------------------
-    # Comportamiento anytime
+    # Entrega de la mejor solucion cuando se agota el tiempo
     # ------------------------------------------------------------------
 
-    def _es_mejor_que(self, candidato: NodoBusqueda,
-                      referencia: NodoBusqueda) -> bool:
+    def _es_mejor(self, candidato: EstadoPartida,
+                  referencia: EstadoPartida) -> bool:
         """
-        Compara dos nodos con el mismo criterio que arbitra el concurso.
+        Compara dos estados con el mismo orden que arbitra el concurso.
 
-        Primero manda la profundidad, es decir la cantidad de fichas
-        colocadas. Ante igualdad, manda dejar menos celdas ocupadas. Ante
-        igualdad en ambas, manda el menor costo acumulado.
+        Primero mandan las fichas colocadas. Ante igualdad, manda dejar menos
+        celdas ocupadas.
         """
-        if candidato.profundidad != referencia.profundidad:
-            return candidato.profundidad > referencia.profundidad
+        if candidato.cantidad_colocadas != referencia.cantidad_colocadas:
+            return candidato.cantidad_colocadas > referencia.cantidad_colocadas
 
-        ocupadas_candidato = candidato.estado.tablero.cantidad_ocupadas
-        ocupadas_referencia = referencia.estado.tablero.cantidad_ocupadas
+        ocupadas_candidato = candidato.tablero.cantidad_ocupadas
+        ocupadas_referencia = referencia.tablero.cantidad_ocupadas
 
-        if ocupadas_candidato != ocupadas_referencia:
-            return ocupadas_candidato < ocupadas_referencia
+        return ocupadas_candidato < ocupadas_referencia
 
-        return candidato.costo_acumulado < referencia.costo_acumulado
-
-    def _completar_con_avidez(self, nodo: NodoBusqueda) -> List[Tuple[int, int]]:
+    def _completar_desde_el_mejor(self, padre: dict, estados: dict,
+                                  clave_mejor: bytes) -> List[Tuple[int, int]]:
         """
-        Termina la partida desde el nodo indicado con una politica avida.
+        Termina la partida desde el mejor estado visto, de forma avida.
 
         Se invoca cuando la busqueda se detuvo sin alcanzar la meta. En cada
-        paso se elige la celda que minimiza el costo de la accion, con los
-        mismos desempates que ordenan los sucesores, de modo que el resultado
-        es reproducible.
+        paso se elige la celda de menor costo inmediato, con el mismo criterio
+        de desempate que usa el resto del agente, de modo que el resultado es
+        reproducible.
         """
-        colocaciones = self._reconstruir_camino(nodo)
-        estado_simulado = nodo.estado.copiar()
+        colocaciones = self._reconstruir_camino(padre, clave_mejor)
+        estado_simulado = estados[clave_mejor].copiar()
 
         while estado_simulado.hay_fichas_pendientes() is True:
             celdas_disponibles = self._motor.acciones_legales(estado_simulado)
@@ -451,49 +353,25 @@ class AgenteBusquedaAEstrella(Agente):
                             celdas_disponibles: List[Tuple[int, int]]) -> Tuple[int, int]:
         """Elige la celda que produce el menor costo inmediato."""
         mejor_celda = celdas_disponibles[0]
-        mejor_clave = None
+        mejor_clave_de_orden = None
 
         for fila, columna in celdas_disponibles:
             estado_tentativo = estado.copiar()
             resultado = self._motor.colocar(estado_tentativo, fila, columna)
 
-            costo_de_la_accion = self._calcular_costo(
+            costo_de_la_accion = self._costo_de_la_accion(
                 estado_tentativo, resultado.tamano_componente
             )
 
-            clave_tentativa = (
-                costo_de_la_accion,
-                estado_tentativo.tablero.cantidad_ocupadas,
-                fila,
-                columna,
-            )
+            clave_de_orden = (costo_de_la_accion, fila, columna)
 
-            if mejor_clave is None:
-                mejor_clave = clave_tentativa
+            if mejor_clave_de_orden is None:
+                mejor_clave_de_orden = clave_de_orden
                 mejor_celda = (fila, columna)
                 continue
 
-            if clave_tentativa < mejor_clave:
-                mejor_clave = clave_tentativa
+            if clave_de_orden < mejor_clave_de_orden:
+                mejor_clave_de_orden = clave_de_orden
                 mejor_celda = (fila, columna)
 
         return mejor_celda
-
-    def _reconstruir_camino(self, nodo: NodoBusqueda) -> List[Tuple[int, int]]:
-        """
-        Recorre los punteros al padre para reconstruir la secuencia de acciones.
-
-        Sin estos punteros la busqueda conoceria el costo del camino pero no el
-        camino en si.
-        """
-        acciones_invertidas: List[Tuple[int, int]] = []
-        nodo_actual = nodo
-
-        while nodo_actual is not None:
-            if nodo_actual.accion is not None:
-                acciones_invertidas.append(nodo_actual.accion)
-
-            nodo_actual = nodo_actual.padre
-
-        acciones_invertidas.reverse()
-        return acciones_invertidas

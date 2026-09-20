@@ -25,13 +25,6 @@ from src.partidas.observador import ObservadorPartida
 from src.partidas.sesion_partida import SesionPartida
 from src.soluciones.escritor_solucion import EscritorSolucion
 
-
-# Archivo donde se acumulan los resultados de las partidas humanas.
-RUTA_BITACORA_HUMANA = os.path.join(
-    "resultados", "humano", "partidas_humanas.csv"
-)
-
-
 class VentanaJuego(ObservadorPartida):
     """
     Unica ventana de la aplicacion grafica.
@@ -352,7 +345,7 @@ class VentanaJuego(ObservadorPartida):
         escritor = EscritorSolucion()
         escritor.escribir(ruta_solucion, self._sesion.registro, metricas)
 
-        bitacora = RegistroHumano(RUTA_BITACORA_HUMANA)
+        bitacora = RegistroHumano(nombres_archivos.ruta_bitacora_humana())
         bitacora.registrar(
             metricas=metricas,
             jugador=self._nombre_jugador,

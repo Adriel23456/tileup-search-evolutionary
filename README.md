@@ -1,8 +1,7 @@
 # TileUp - Agentes de busqueda y evolutivos
 
-Implementacion del juego TileUp con motor de reglas independiente, agentes
-automaticos que lo resuelven, validador de soluciones e interfaz grafica para
-jugar.
+Motor del juego TileUp, agentes automaticos que lo resuelven, validador
+independiente de soluciones e interfaz grafica para jugar una partida.
 
 Tarea Corta 1 - Inteligencia Artificial (IC-6200) - Instituto Tecnologico de
 Costa Rica.
@@ -15,28 +14,11 @@ Costa Rica.
 | Daniel Duarte Cordero | 2022012866 |
 | Sebastian Hernandez Bonilla | 2022093651 |
 
-## Estado actual
-
-| Componente | Estado |
-|---|---|
-| Motor del juego | Completo |
-| Lectura de instancias y escritura de soluciones | Completo |
-| Interfaz grafica de juego humano | Completo |
-| Bitacora de partidas humanas | Completo |
-| Validador independiente | Completo |
-| Agente de busqueda A* | Completo |
-| Agente evolutivo | Pendiente |
-| Generador de instancias | Pendiente |
-| Comparacion experimental | Pendiente |
-| Estudio de escalabilidad | Pendiente |
-
 ## Requisitos
 
 - Windows 10 u 11.
 - Python 3.10 o superior, con Tkinter incluido (viene con el instalador
   oficial de python.org).
-- No se requiere GPU. El sistema detecta CuPy si esta instalado, pero todo el
-  computo actual ocurre en CPU con NumPy.
 
 ```powershell
 py --version
@@ -59,11 +41,10 @@ Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 .venv\Scripts\Activate.ps1
 ```
 
-A partir de aqui, los comandos del documento se escriben como `python`,
-asumiendo el entorno activo. Sin activarlo, sustituya `python` por
-`.venv\Scripts\python.exe`.
+A partir de aqui los comandos se escriben como `python`, asumiendo el entorno
+activo. Sin activarlo, sustituya `python` por `.venv\Scripts\python.exe`.
 
-## Un punto de entrada, seis subcomandos
+## Un punto de entrada, cinco subcomandos
 
 Todo el sistema se opera desde `main.py`.
 
@@ -78,7 +59,6 @@ python main.py --ayuda-completa
 | `jugar` | Abre la ventana de juego para jugar una partida. |
 | `instancia` | Revisa el formato de un archivo de instancia. |
 | `agentes` | Lista los agentes disponibles. |
-| `backend` | Muestra el backend de computo detectado. |
 
 Codigos de salida, comunes a todos los subcomandos:
 
@@ -92,7 +72,7 @@ Codigos de salida, comunes a todos los subcomandos:
 ## Subcomando `resolver`
 
 ```powershell
-python main.py resolver --instancia datos\instancias\ejemplo_n4_k3_m6.txt --agente busqueda --semilla 42 --limite-tiempo 5
+python main.py resolver --instancia datos\instancias\ejemplo_n4_k3_m6.txt --agente busqueda_astar --semilla 0 --limite-tiempo 10
 ```
 
 | Argumento | Obligatorio | Descripcion |
@@ -108,15 +88,28 @@ python main.py resolver --instancia datos\instancias\ejemplo_n4_k3_m6.txt --agen
 Salida estandar:
 
 ```text
-busqueda     [##############################] 6/6
-agente=busqueda instancia=ejemplo_n4_k3_m6 semilla=42 resultado=victoria colocadas=6/6 ocupadas=3 mayor=6 tiempo_s=0.0231 nodos_expandidos=412
-solucion=D:\...\datos\soluciones\busqueda\ejemplo_n4_k3_m6__busqueda__s42.sol
+Planificando con 'busqueda_astar' sobre ejemplo_n4_k3_m6  (N=4, K=3, M=6). Limite de tiempo: 10.0 s.
+busqueda_astar [##############################] 6/6
+agente=busqueda_astar instancia=ejemplo_n4_k3_m6 semilla=0 resultado=victoria colocadas=6/6 ocupadas=3 mayor=6 tiempo_s=0.0625 nodos_expandidos=502
+solucion=D:\...\datos\soluciones\busqueda_astar\ejemplo_n4_k3_m6__busqueda_astar__s0.sol
+bitacora=resultados\experimentos\comparacion_agentes.csv
 ```
+
+Cuando la busqueda no alcanza la meta dentro del limite, el agente entrega la
+mejor solucion encontrada y lo advierte por salida estandar:
+
+```text
+Nota: la busqueda se corto por tiempo o por nodos; la solucion se completo con la politica avida.
+```
+
+Cada ejecucion escribe su archivo de solucion y agrega una fila a
+`resultados/experimentos/comparacion_agentes.csv` con las mismas metricas que
+imprime, de modo que la bitacora y la salida estandar nunca difieren.
 
 ## Subcomando `validar`
 
 ```powershell
-python main.py validar --instancia datos\instancias\ejemplo_n4_k3_m6.txt --solucion datos\soluciones\busqueda\ejemplo_n4_k3_m6__busqueda__s42.sol
+python main.py validar --instancia datos\instancias\ejemplo_n4_k3_m6.txt --solucion datos\soluciones\busqueda_astar\ejemplo_n4_k3_m6__busqueda_astar__s0.sol
 ```
 
 | Argumento | Obligatorio | Descripcion |
@@ -125,10 +118,20 @@ python main.py validar --instancia datos\instancias\ejemplo_n4_k3_m6.txt --soluc
 | `--solucion` | Si | Ruta del archivo de solucion a validar. |
 | `--exigir-completa` | No | Rechaza la solucion si no consume la secuencia entera. |
 
+Salida estandar:
+
+```text
+instancia=ejemplo_n4_k3_m6  (N=4, K=3, M=6)
+solucion=ejemplo_n4_k3_m6__busqueda_astar__s0
+veredicto=ACEPTADA
+colocadas=6/6 ocupadas=3 mayor=6 suma=12
+completitud=secuencia_consumida
+```
+
 ## Subcomando `jugar`
 
 ```powershell
-python main.py jugar --instancia datos\instancias\pequena_n5_k3_m12.txt --jugador adriel --partida 1
+python main.py jugar --instancia datos\instancias\ejemplo_n5_k3_m12.txt --jugador adriel --partida 1
 ```
 
 | Argumento | Obligatorio | Descripcion |
@@ -144,12 +147,11 @@ escribe el archivo de solucion y agrega una fila a
 
 La interfaz sirve unicamente para jugar: no ofrece forma de ejecutar agentes.
 
-## Subcomandos `instancia`, `agentes` y `backend`
+## Subcomandos `instancia` y `agentes`
 
 ```powershell
 python main.py instancia --instancia datos\instancias\ejemplo_n4_k3_m6.txt
 python main.py agentes
-python main.py backend
 ```
 
 ## Pruebas
@@ -199,6 +201,10 @@ el valor de cada ficha.
 2 4
 ```
 
+Un archivo mal formado produce un mensaje de error legible con el numero de
+linea afectado y un codigo de salida distinto de cero, nunca una traza de
+excepcion sin controlar.
+
 ## Formato de salida
 
 Una linea por colocacion, en el orden de la secuencia, con el indice de la
@@ -215,24 +221,31 @@ comienza con `#` y resume el resultado.
 # colocadas=6 ocupadas=3 mayor=6
 ```
 
+El archivo se escribe siempre, aun cuando la partida termine en derrota, con
+las colocaciones que el agente alcanzo a realizar.
+
 ## Convencion de nombrado
 
 | Directorio | Patron |
 |---|---|
 | `datos/instancias/` | `<etiqueta>_n<N>_k<K>_m<M>.txt` |
-| `datos/instancias/` generadas | `gen_n<N>_k<K>_m<M>_s<semilla>.txt` |
 | `datos/soluciones/<agente>/` | `<instancia>__<agente>__s<semilla>.sol` |
 | `resultados/humano/` | `partidas_humanas.csv` |
-| `resultados/experimentos/` | `comparacion_agentes.csv`, `escalabilidad_n_k.csv` |
+| `resultados/experimentos/` | `comparacion_agentes.csv` |
 
 Todo en minusculas, sin espacios ni caracteres especiales del espanol. El
 modulo `src/nombrado/nombres_archivos.py` es la unica fuente de estos
 patrones.
 
+Los agentes de busqueda son todos el mismo algoritmo A*; lo unico que cambia
+entre ellos es la heuristica. Por eso su nombre sigue el patron
+`busqueda_<heuristica>`, de modo que el nombre del agente, el directorio de
+soluciones y el nombre de la heuristica digan siempre lo mismo.
+
 ## Organizacion del repositorio
 
 ```text
-main.py            Punto de entrada unico, con seis subcomandos.
+main.py            Punto de entrada unico, con cinco subcomandos.
 
 src/dominio/       Reglas puras del juego: ficha, tablero, estado y motor.
 src/instancias/    Lectura y validacion del formato de entrada.
@@ -240,8 +253,7 @@ src/soluciones/    Acumulacion y escritura del formato de salida.
 src/partidas/      Orquestacion de partidas, observadores y ejecutor.
 src/agentes/       Contrato de agente, heuristicas y agentes concretos.
 src/validacion/    Reimplementacion independiente de las reglas y arbitraje.
-src/metricas/      Metricas reportables y bitacora de partidas humanas.
-src/aceleracion/   Deteccion del backend de computo.
+src/metricas/      Metricas reportables y bitacoras de resultados.
 src/nombrado/      Convenciones de nombrado de archivos.
 src/cli/           Subcomandos y ejecucion por consola.
 src/gui/           Ventana de juego humano.
@@ -252,25 +264,22 @@ pruebas/           Pruebas unitarias y de integracion.
 Flujo de datos:
 
 ```text
-datos/instancias/*.txt        ENTRADA de los agentes y del jugador humano.
-datos/soluciones/humano/      SALIDA de las partidas humanas.
-datos/soluciones/busqueda/    SALIDA del agente de busqueda.
-datos/soluciones/evolutivo/   SALIDA del agente evolutivo.
-datos/soluciones/aleatorio/   SALIDA del agente de linea base.
-resultados/humano/            Bitacora acumulada de partidas humanas.
-resultados/experimentos/      Tablas y graficas de la comparacion final.
+datos/instancias/*.txt               ENTRADA de los agentes y del jugador.
+datos/soluciones/humano/             SALIDA de las partidas humanas.
+datos/soluciones/aleatorio/          SALIDA del agente de linea base.
+datos/soluciones/busqueda_astar/     SALIDA de A* con heuristica admisible.
+datos/soluciones/busqueda_dijkstra/  SALIDA de A* con h = 0.
+resultados/humano/                   Bitacora de partidas humanas.
+resultados/experimentos/             Bitacora de ejecuciones de agentes.
 ```
 
 ## Agentes disponibles
 
-| Nombre | Estado | Medida de esfuerzo |
+| Nombre | Algoritmo | Medida de esfuerzo |
 |---|---|---|
-| `aleatorio` | Implementado. Linea base inferior. | `colocaciones_evaluadas` |
-| `busqueda` | Implementado. A* con poda, configuracion de competencia. | `nodos_expandidos` |
-| `busqueda_exacta` | Implementado. A* puro, optimo. | `nodos_expandidos` |
-| `busqueda_dijkstra` | Implementado. A* con `h = 0`. | `nodos_expandidos` |
-| `busqueda_agresiva` | Implementado. Heuristica no admisible. | `nodos_expandidos` |
-| `evolutivo` | Pendiente. | `evaluaciones_aptitud` |
+| `aleatorio` | Coloca cada ficha en una celda vacia al azar. Linea base inferior. | `colocaciones_evaluadas` |
+| `busqueda_astar` | A* con la heuristica admisible de colores pendientes. Es el agente de busqueda del enunciado. | `nodos_expandidos` |
+| `busqueda_dijkstra` | A* con `h = 0`, es decir Dijkstra. Linea base para medir el aporte de la heuristica. | `nodos_expandidos` |
 
 Agregar un agente consiste en implementar la interfaz `Agente` e inscribirlo
 en `RegistroAgentes`. Ningun otro archivo del sistema cambia.
@@ -308,13 +317,13 @@ legalidad de completitud.
 | Estado inicial | Tablero vacio, `i = 0`. |
 | Operador de sucesion | Colocar la ficha `i` en cualquier celda vacia, aplicando la fusion. |
 | Factor de ramificacion | Exactamente la cantidad de celdas vacias. |
-| Costo de accion | `(N^2 - 1) - liberadas(a)`, con `liberadas(a) = |G| - 1`. |
+| Costo de accion | `(N^2 - 1) - liberadas(a)`, con `liberadas(a) = \|G\| - 1`. |
 | Prueba de meta | `i == M`. |
 
 La funcion de costo se eligio con dos condiciones simultaneas.
 
 **No negatividad.** A* pierde sus garantias con costos negativos. El costo
-"natural" seria el cambio en celdas ocupadas, que vale `2 - |G|` y es negativo
+"natural" seria el cambio en celdas ocupadas, que vale `1 - |G|` y es negativo
 en cuanto hay fusion. Restar las liberaciones de una constante lo arregla.
 
 **Exactitud respecto al objetivo.** Todo camino meta tiene exactamente `M`
@@ -324,83 +333,83 @@ para todos los caminos meta, asi que **minimizar `g` equivale exactamente a
 minimizar las celdas ocupadas al terminar**, que es el segundo criterio de
 desempate del concurso.
 
+### Estructuras del algoritmo
+
+La implementacion sigue el pseudocodigo de A* sobre grafos:
+
+| Estructura | Rol |
+|---|---|
+| Lista abierta | Cola de prioridad ordenada por `f = g + h`. Es lo que separa A* de BFS: BFS extrae por orden de llegada, A* por el menor total estimado. |
+| Lista cerrada | Estados ya expandidos, para no reprocesarlos. |
+| `g` | Costo real de llegar a cada estado. |
+| `padre` | Puntero al estado del que se llego. Permite reconstruir el camino al alcanzar la meta; sin el, la busqueda conoceria el costo pero no el camino. |
+
 ### Heuristicas
 
 | Nombre | Admisible | Descripcion |
 |---|---|---|
 | `cero` | Si | `h = 0`. Convierte A* en Dijkstra. Linea base. |
-| `cota_liberaciones` | Si | Cota por conservacion de celdas. Opcion por defecto. |
-| `compactacion_pK` | **No** | Cota admisible mas una penalizacion por ocupacion. |
+| `colores_pendientes` | Si | Cota por conservacion de celdas. Es la del agente `busqueda_astar`. |
 
-**La heuristica admisible, en detalle.** El costo restante es
-`restantes * (N^2 - 1) - liberaciones_futuras`. Para acotarlo por debajo hay
-que acotar las liberaciones futuras por arriba. Por conservacion de celdas,
-`liberaciones_futuras = (ocupadas + restantes) - ocupadas_finales`, de modo
-que basta una cota inferior de `ocupadas_finales`. Se usan dos aportes que no
-pueden solaparse porque hablan de colores distintos:
+**El argumento de admisibilidad, en tres pasos.**
 
-1. Cada color distinto que todavia aparece en la secuencia pendiente deja al
-   menos una celda al final. Cuando se coloca su ultima ficha, nada posterior
-   puede retirarla: solo una ficha del mismo color provocaria la fusion que la
-   absorbe, y ya no queda ninguna.
-2. Cada componente conexa de un color congelado, es decir presente en el
-   tablero pero ausente del resto de la secuencia, permanece intacta.
+El costo que falta es `R * (N^2 - 1) - liberaciones_futuras`, donde `R` son
+las fichas que quedan por colocar. Por conservacion de celdas, cada ficha
+ocupa una celda y cada fusion libera `|G| - 1`, de modo que
 
 ```text
-cota = componentes_congeladas + colores_distintos_restantes
-h(n) = max(0, restantes * (N^2 - 1) - max(0, ocupadas + restantes - cota))
+liberaciones_futuras = ocupadas_ahora + R - ocupadas_finales
 ```
 
-Ambos aportes se derivan de invariantes del juego y no de las decisiones del
-agente, por lo que la cota nunca sobreestima. En los casos triviales es
-exacta: en un tablero 2x2 con dos fichas del mismo color da `h = h* = 5`.
+Acotar el costo por debajo equivale entonces a acotar `ocupadas_finales` por
+debajo. Y cada color distinto que todavia aparece en la secuencia pendiente
+deja al menos una celda ocupada al terminar: cuando se coloca su ultima ficha,
+nada posterior puede retirarla, porque solo una ficha del mismo color
+provocaria la fusion que la absorbe y ya no queda ninguna. Por tanto
 
-**La heuristica no admisible, y que garantia se pierde.** `compactacion_pK`
-suma a la cota admisible una penalizacion proporcional a las celdas ocupadas
-en el estado actual, lo que empuja la busqueda hacia configuraciones
-despejadas antes de que el costo real lo justifique. Al sobreestimar, A* deja
-de garantizar que la solucion encontrada sea la optima. Sigue siendo completa
-dentro del limite de nodos y sigue produciendo soluciones legales, pero la
-cantidad de celdas ocupadas al final puede no ser la minima posible. El peso
-`K` se fijo por barrido sobre los valores 1, 2, 4 y 8.
+```text
+h(n) = R * (N^2 - 1) - (ocupadas + R - colores_distintos_pendientes)
+```
 
-### Comportamiento anytime
+Ambos terminos se recortan a cero para que la estimacion nunca sea negativa;
+recortar solo puede hacerla mas optimista, y una heuristica mas optimista
+sigue siendo admisible.
+
+La cota es exacta en los casos simples. En un tablero 2x2 con dos fichas del
+mismo color da `h = h* = 5`, y en la instancia de ejemplo del enunciado da
+`ocupadas_finales >= 3`, que es justo el optimo que el agente alcanza.
+
+**Sobre la consistencia.** La heuristica es admisible pero no es consistente:
+al colocar la ultima ficha de un color, el conjunto de colores pendientes se
+reduce y `h` cae mas de lo que cuesta esa accion. Por eso el agente reabre los
+nodos cerrados cuando descubre un camino mas barato hacia ellos. Sin esa
+reapertura, A* con lista cerrada podria fijar un costo subotimo y no
+corregirlo.
+
+### Respeto del limite de tiempo
 
 El espacio de estados crece como el producto de las celdas vacias a lo largo
 de la secuencia: para `N = 6` y `M = 24` el arbol tiene del orden de `36^24`
-nodos. A* exacto solo termina en instancias pequenas, de modo que el agente
-incorpora tres mecanismos:
+nodos, de modo que A* solo termina en instancias pequenas. El agente aplica
+tres mecanismos:
 
-1. **Limite de tiempo.** Se comprueba en cada expansion.
-2. **Limite de nodos expandidos.** Acota tambien la memoria.
+1. **Limite de tiempo.** Se comprueba en cada expansion. Se reserva una
+   fraccion del presupuesto para el completado avido, de modo que el tiempo
+   total nunca exceda el limite recibido.
+2. **Limite de nodos expandidos.** Acota la memoria, porque cada estado
+   visitado se conserva para poder reconstruir el camino.
 3. **Completado avido.** Si la busqueda se detiene sin alcanzar la meta, se
-   toma el mejor nodo visto y se termina la partida con una politica avida
-   determinista, de modo que el agente siempre entrega una solucion.
-
-El limite de sucesores por nodo es el cuarto mecanismo y el unico que cambia
-la naturaleza del algoritmo: con el activo, A* se convierte en una busqueda en
-haz ordenada por `f`. Gana tratabilidad y pierde completitud y optimalidad.
-Se desactiva construyendo el agente con `maximo_sucesores = 0`.
+   toma el mejor estado visto y se termina la partida colocando cada ficha
+   restante en la celda de menor costo inmediato. Asi el agente siempre
+   entrega una solucion, y lo advierte por salida estandar.
 
 ### Determinismo
 
 El agente no usa ninguna fuente de azar. Todos los desempates se resuelven por
 reglas fijas: en la lista abierta, menor `f`, luego menor `h`, luego orden de
-insercion; entre sucesores, menor `f`, luego menos celdas ocupadas, luego
-menor fila y columna. Dos ejecuciones sobre la misma instancia producen
-siempre la misma solucion, sin importar la semilla.
-
-### Variantes registradas
-
-| Nombre en consola | Heuristica | Poda | Uso previsto |
-|---|---|---|---|
-| `busqueda` | `cota_liberaciones` | 6 sucesores | Configuracion de competencia. |
-| `busqueda_exacta` | `cota_liberaciones` | Ninguna | A* puro, optimo, solo instancias pequenas. |
-| `busqueda_dijkstra` | `cero` | Ninguna | Linea base para medir el aporte de la heuristica. |
-| `busqueda_agresiva` | `compactacion_p2` | 6 sucesores | Menos nodos, sin garantia de optimalidad. |
-
-Las cuatro variantes comparten el nombre de agente `busqueda`, de modo que sus
-soluciones se escriben en `datos/soluciones/busqueda/`.
+insercion; en el completado avido, menor costo, luego menor fila y columna.
+Dos ejecuciones sobre la misma instancia producen siempre la misma solucion,
+sin importar la semilla.
 
 ## Decisiones de diseno
 
@@ -416,8 +425,8 @@ dos casos cambia `main.py`, ni el motor, ni la sesion, ni la ventana de juego.
 
 **Sustitucion de Liskov.** `ObservadorConsola` y `VentanaJuego` implementan la
 misma interfaz `ObservadorPartida` y son intercambiables desde el punto de
-vista de la sesion, que no distingue cual esta observando. Lo mismo ocurre
-entre las tres heuristicas del agente de busqueda.
+vista de la sesion, que no distingue cual la esta observando. Lo mismo ocurre
+entre las heuristicas del agente de busqueda.
 
 **Segregacion de interfaces.** `Agente` expone cuatro miembros,
 `ObservadorPartida` tres, `Comando` cuatro y `Heuristica` tres. Ninguna clase
@@ -430,25 +439,24 @@ nada por encima de el, por lo que el motor completo se ejecuta y se prueba sin
 entorno grafico.
 
 **Sobre el punto de entrada unico.** El sistema tiene un solo ejecutable con
-subcomandos, no un ejecutable por tarea. SOLID rige clases y modulos, no la
-cantidad de archivos con punto de entrada, y una sola interfaz es mas facil de
-aprender y de documentar que tres. La propiedad que si importaba, que ejecutar
-agentes no arrastre la capa grafica, se conserva mediante importacion tardia:
-`ComandoJugar` importa `VentanaJuego` dentro de su metodo `ejecutar`, de modo
-que `resolver` y `validar` nunca cargan Tkinter.
+subcomandos, no un ejecutable por tarea. La propiedad que importa, que
+ejecutar agentes no arrastre la capa grafica, se conserva mediante importacion
+tardia: `ComandoJugar` importa `VentanaJuego` dentro de su metodo `ejecutar`,
+de modo que `resolver` y `validar` nunca cargan Tkinter.
 
-**Sobre el uso de GPU.** El motor opera sobre tableros de decenas de celdas,
-donde una transferencia de memoria a la GPU costaria mas que el calculo. Por
-eso el sistema corre integramente en CPU con NumPy, que ya provee arreglos
-contiguos y operaciones vectorizadas suficientes. El modulo
-`src/aceleracion/backend.py` detecta CuPy y un dispositivo CUDA si estan
-disponibles, y queda como punto de extension para el agente evolutivo, donde
-si tiene sentido evaluar poblaciones completas en lote.
+## Bibliotecas externas
 
-## Declaracion de uso de inteligencia artificial
+| Biblioteca | Uso |
+|---|---|
+| NumPy | Matrices contiguas para el tablero. |
+| pytest | Marco de pruebas. |
 
-Pendiente de completar antes de la entrega final, segun lo exigido en la
-seccion de evaluacion del enunciado.
+La cola de prioridad de A* es `heapq` de la biblioteca estandar. El motor, la
+busqueda y la heuristica estan escritos integramente en este repositorio: no
+se usa ninguna biblioteca de busqueda en grafos o en espacios de estados, ni
+marcos de computacion evolutiva, ni resolvedores de restricciones. El programa
+no invoca ningun modelo de lenguaje en tiempo de ejecucion ni realiza ninguna
+llamada de red.
 
 ## Licencia
 

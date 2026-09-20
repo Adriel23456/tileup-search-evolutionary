@@ -9,12 +9,13 @@ from src.dominio.resultado_colocacion import ResultadoColocacion
 
 class ObservadorPartida(ABC):
     """
-    Interfaz que permite observar una partida sin acoplarla a la GUI.
+    Interfaz que permite observar una partida sin acoplarla a la interfaz
+    grafica.
 
     Cumple el Principio de Inversion de Dependencias: la sesion de partida
-    depende de esta abstraccion, no de Tkinter. Mas adelante la barra de
-    progreso de los agentes sera simplemente otra implementacion de esta
-    misma interfaz.
+    depende de esta abstraccion, no de Tkinter. La barra de progreso de la
+    consola y la ventana de juego son dos implementaciones de esta misma
+    interfaz, y la sesion no distingue cual la esta observando.
     """
 
     @abstractmethod
@@ -30,26 +31,3 @@ class ObservadorPartida(ABC):
     def al_terminar(self, estado: EstadoPartida,
                     terminacion: EstadoTerminacion) -> None:
         """Se invoca una vez cuando la partida llega a su condicion de termino."""
-
-
-class ObservadorSilencioso(ObservadorPartida):
-    """
-    Implementacion vacia de ObservadorPartida.
-
-    Sirve como objeto nulo cuando no interesa observar nada, por ejemplo en
-    las pruebas automatizadas.
-    """
-
-    def al_iniciar(self, estado: EstadoPartida) -> None:
-        """No hace nada."""
-        return None
-
-    def al_colocar(self, estado: EstadoPartida,
-                   resultado: ResultadoColocacion) -> None:
-        """No hace nada."""
-        return None
-
-    def al_terminar(self, estado: EstadoPartida,
-                    terminacion: EstadoTerminacion) -> None:
-        """No hace nada."""
-        return None

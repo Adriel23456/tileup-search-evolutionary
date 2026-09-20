@@ -4,6 +4,12 @@ Registro de agentes disponibles para la linea de comandos.
 Centraliza la construccion de agentes para que agregar uno nuevo no obligue a
 modificar la capa de consola. Esto cumple el Principio Abierto/Cerrado: el
 sistema se extiende registrando, no editando.
+
+Convencion de nombrado de los agentes. Todos los agentes de busqueda son el
+mismo algoritmo A*; lo unico que cambia entre ellos es la heuristica. Por eso
+el nombre se forma como busqueda_<heuristica>, de modo que el nombre del
+agente, el nombre del directorio de soluciones y el nombre de la heuristica
+digan siempre lo mismo.
 """
 
 from typing import Callable, Dict, List
@@ -11,16 +17,20 @@ from typing import Callable, Dict, List
 from src.agentes.agente import Agente
 from src.agentes.agente_aleatorio import AgenteAleatorio
 from src.agentes.agente_busqueda import AgenteBusquedaAEstrella
-from src.agentes.heuristicas import (
-    HeuristicaCero,
-    HeuristicaCompactacion,
-    HeuristicaCotaLiberaciones,
-)
+from src.agentes.heuristicas import HeuristicaCero, HeuristicaColoresPendientes
 
 
-# Firma que debe cumplir todo constructor registrado: recibe la semilla y
-# devuelve una instancia lista para planificar.
+# Firma que debe cumplir todo constructor registrado.
 ConstructorAgente = Callable[[int], Agente]
+
+# Nombre del agente de busqueda que el enunciado exige y que compite.
+NOMBRE_AGENTE_BUSQUEDA = "busqueda_astar"
+
+# Nombre del agente de busqueda que sirve de linea base en el informe.
+NOMBRE_AGENTE_DIJKSTRA = "busqueda_dijkstra"
+
+# Nombre del agente de linea base que coloca al azar.
+NOMBRE_AGENTE_ALEATORIO = "aleatorio"
 
 
 class ErrorAgenteDesconocido(Exception):
@@ -31,17 +41,15 @@ class RegistroAgentes:
     """Tabla de agentes disponibles, indexada por su nombre en consola."""
 
     def __init__(self) -> None:
-        """Crea el registro con los agentes disponibles en esta etapa."""
+        """Crea el registro con los agentes implementados."""
         self._constructores: Dict[str, ConstructorAgente] = {}
         self._registrar_agentes_disponibles()
 
     def _registrar_agentes_disponibles(self) -> None:
-        """Inscribe cada agente implementado bajo su nombre de consola."""
-        self.registrar("aleatorio", self._construir_aleatorio)
-        self.registrar("busqueda", self._construir_busqueda)
-        self.registrar("busqueda_exacta", self._construir_busqueda_exacta)
-        self.registrar("busqueda_dijkstra", self._construir_busqueda_dijkstra)
-        self.registrar("busqueda_agresiva", self._construir_busqueda_agresiva)
+        """Inscribe cada agente bajo su nombre de consola."""
+        self.registrar(NOMBRE_AGENTE_ALEATORIO, self._construir_aleatorio)
+        self.registrar(NOMBRE_AGENTE_BUSQUEDA, self._construir_busqueda_astar)
+        self.registrar(NOMBRE_AGENTE_DIJKSTRA, self._construir_busqueda_dijkstra)
 
     def registrar(self, nombre: str, constructor: ConstructorAgente) -> None:
         """Inscribe un constructor bajo el nombre indicado."""
@@ -67,59 +75,36 @@ class RegistroAgentes:
     # ------------------------------------------------------------------
 
     def _construir_aleatorio(self, semilla: int) -> Agente:
-        """Construye el agente de linea base aleatorio."""
+        """
+        Construye el agente de linea base que coloca al azar.
+
+        No es el agente que exige el enunciado. Sirve de piso de comparacion
+        en el informe: la busqueda informada debe superarlo siempre.
+        """
         return AgenteAleatorio(semilla=semilla)
 
-    def _construir_busqueda(self, semilla: int) -> Agente:
+    def _construir_busqueda_astar(self, semilla: int) -> Agente:
         """
-        Construye la configuracion de competencia del agente de busqueda.
+        Construye el agente de busqueda del enunciado.
 
-        Heuristica admisible con poda de sucesores. Es la variante pensada
-        para el concurso: no garantiza optimalidad, pero termina dentro del
-        limite de tiempo en instancias de tamano realista.
+        Es A* con la heuristica admisible de colores pendientes, y es el
+        agente que compite.
         """
         return AgenteBusquedaAEstrella(
             semilla=semilla,
-            heuristica=HeuristicaCotaLiberaciones(),
-            maximo_sucesores=6,
-        )
-
-    def _construir_busqueda_exacta(self, semilla: int) -> Agente:
-        """
-        Construye A* puro: heuristica admisible y sin poda de sucesores.
-
-        Garantiza la solucion optima, pero solo termina en instancias
-        pequenas. Es la referencia contra la cual se mide cuanto pierde la
-        variante de competencia.
-        """
-        return AgenteBusquedaAEstrella(
-            semilla=semilla,
-            heuristica=HeuristicaCotaLiberaciones(),
-            maximo_sucesores=0,
+            nombre=NOMBRE_AGENTE_BUSQUEDA,
+            heuristica=HeuristicaColoresPendientes(),
         )
 
     def _construir_busqueda_dijkstra(self, semilla: int) -> Agente:
         """
-        Construye A* con heuristica nula, es decir, Dijkstra.
+        Construye A* con heuristica nula, que es el algoritmo de Dijkstra.
 
-        Sirve de linea base para medir cuanto trabajo ahorra la heuristica
-        informada en el informe.
+        Existe solo como linea base del informe, para medir con numeros
+        propios cuantos nodos ahorra la heuristica informada.
         """
         return AgenteBusquedaAEstrella(
             semilla=semilla,
+            nombre=NOMBRE_AGENTE_DIJKSTRA,
             heuristica=HeuristicaCero(),
-            maximo_sucesores=0,
-        )
-
-    def _construir_busqueda_agresiva(self, semilla: int) -> Agente:
-        """
-        Construye A* con la heuristica NO admisible de compactacion.
-
-        Expande muchos menos nodos a cambio de renunciar a la garantia de
-        optimalidad.
-        """
-        return AgenteBusquedaAEstrella(
-            semilla=semilla,
-            heuristica=HeuristicaCompactacion(peso_penalizacion=2),
-            maximo_sucesores=6,
         )
