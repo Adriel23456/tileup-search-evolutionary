@@ -13,11 +13,22 @@ import os
 # Extension de los archivos de solucion.
 EXTENSION_SOLUCION = ".sol"
 
+# Extension de los archivos de instancia.
+EXTENSION_INSTANCIA = ".txt"
+
 # Separador entre los campos del nombre de una solucion.
 SEPARADOR_CAMPOS = "__"
 
 # Raiz de los directorios de soluciones.
 DIRECTORIO_RAIZ_SOLUCIONES = os.path.join("datos", "soluciones")
+
+# Directorio donde viven los archivos de instancia.
+DIRECTORIO_INSTANCIAS = os.path.join("datos", "instancias")
+
+# Etiqueta con la que se nombran las instancias generadas si no se indica
+# otra. La etiqueta distingue familias de instancias, como las de ejemplo
+# ("ejemplo") o la no publicada ("ciega").
+ETIQUETA_INSTANCIA_POR_DEFECTO = "gen"
 
 # Nombre del agente que representa al jugador humano.
 NOMBRE_AGENTE_HUMANO = "humano"
@@ -68,6 +79,39 @@ def ruta_solucion_humana(nombre_instancia: str, numero_partida: int) -> str:
         nombre_agente=NOMBRE_AGENTE_HUMANO,
         semilla=numero_partida,
     )
+
+
+def nombre_archivo_instancia(etiqueta: str, semilla: int, dimension: int,
+                             cantidad_colores: int,
+                             cantidad_fichas: int) -> str:
+    """
+    Construye el nombre de un archivo de instancia generada.
+
+    Patron: <etiqueta>_s<semilla>_n<N>_k<K>_m<M>.txt
+    Ejemplo: gen_s1_n4_k3_m20.txt
+
+    La semilla forma parte del nombre porque la bateria experimental corre
+    varias semillas por configuracion: sin ella, la segunda semilla
+    sobreescribiria el archivo de la primera.
+    """
+    return (
+        etiqueta
+        + "_s" + str(semilla)
+        + "_n" + str(dimension)
+        + "_k" + str(cantidad_colores)
+        + "_m" + str(cantidad_fichas)
+        + EXTENSION_INSTANCIA
+    )
+
+
+def ruta_instancia(etiqueta: str, semilla: int, dimension: int,
+                   cantidad_colores: int, cantidad_fichas: int) -> str:
+    """Construye la ruta completa del archivo de instancia generada."""
+    nombre = nombre_archivo_instancia(
+        etiqueta, semilla, dimension, cantidad_colores, cantidad_fichas
+    )
+    return os.path.join(DIRECTORIO_INSTANCIAS, nombre)
+
 
 # Directorios donde se acumulan los resultados agregados.
 DIRECTORIO_RESULTADOS = "resultados"

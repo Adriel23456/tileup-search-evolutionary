@@ -11,6 +11,7 @@ from typing import Dict, List
 
 from src.cli.comando import Comando
 from src.cli.comandos.comando_agentes import ComandoAgentes
+from src.cli.comandos.comando_generar import ComandoGenerar
 from src.cli.comandos.comando_instancia import ComandoInstancia
 from src.cli.comandos.comando_jugar import ComandoJugar
 from src.cli.comandos.comando_resolver import ComandoResolver
@@ -40,6 +41,7 @@ class RegistroComandos:
         self.registrar(ComandoValidar())
         self.registrar(ComandoJugar())
         self.registrar(ComandoInstancia())
+        self.registrar(ComandoGenerar())
         self.registrar(ComandoAgentes())
 
     def registrar(self, comando: Comando) -> None:

@@ -36,6 +36,31 @@ python main.py agentes
 python main.py instancia --instancia datos\instancias\ejemplo_n4_k3_m6.txt
 
 
+# --- Generar instancias -----------------------------------------------
+# Sin --salida, el archivo va a datos\instancias\<etiqueta>_s<semilla>_n<N>_k<K>_m<M>.txt
+# La semilla va en el nombre, asi que varias semillas no se pisan entre si.
+python main.py generar --n 4 --k 3 --m 20 --semilla 1
+python main.py generar --n 4 --k 3 --m 20 --semilla 2
+python main.py generar --n 5 --k 3 --m 30 --semilla 1 --etiqueta escalabilidad
+python main.py generar --n 4 --k 3 --m 20 --semilla 1 --salida datos\instancias\mi_prueba.txt
+
+# La instancia generada la acepta el parser y se puede resolver de inmediato.
+python main.py instancia --instancia datos\instancias\gen_s1_n4_k3_m20.txt
+python main.py resolver --instancia datos\instancias\gen_s1_n4_k3_m20.txt --agente aleatorio --semilla 0 --limite-tiempo 5
+
+# Determinismo: la misma semilla produce el mismo archivo byte a byte.
+python main.py generar --n 4 --k 3 --m 20 --semilla 1 --salida a.txt
+python main.py generar --n 4 --k 3 --m 20 --semilla 1 --salida b.txt
+fc a.txt b.txt
+Remove-Item a.txt, b.txt
+
+# Parametros invalidos: mensaje legible y codigo de salida 2, sin traza.
+python main.py generar --n 0 --k 3 --m 5
+echo $LASTEXITCODE
+python main.py generar --n 1 --k 3 --m 5
+echo $LASTEXITCODE
+
+
 # --- Juego humano ------------------------------------------------------
 python main.py jugar
 python main.py jugar --instancia datos\instancias\ejemplo_n5_k3_m12.txt --jugador adriel --partida 1

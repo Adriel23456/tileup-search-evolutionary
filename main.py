@@ -8,6 +8,7 @@ sus propios argumentos:
     validar      Valida un archivo de solucion contra su instancia.
     jugar        Abre la ventana de juego para jugar una partida.
     instancia    Revisa el formato de un archivo de instancia.
+    generar      Genera un archivo de instancia resoluble.
     agentes      Lista los agentes disponibles.
     backend      Muestra el backend de computo detectado.
 
@@ -19,6 +20,7 @@ Ejemplos:
                            --solucion datos\\soluciones\\busqueda\\ejemplo_n4_k3_m6__busqueda__s42.sol
 
     python main.py jugar --instancia datos\\instancias\\pequena_n5_k3_m12.txt
+    python main.py generar --n 4 --k 3 --m 20 --semilla 1
     python main.py agentes
     python main.py --ayuda-completa
 

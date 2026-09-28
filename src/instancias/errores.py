@@ -19,3 +19,14 @@ class ErrorFormatoInstancia(Exception):
             mensaje_completo = mensaje
 
         super().__init__(mensaje_completo)
+
+
+class ErrorParametrosGenerador(Exception):
+    """
+    Se lanza cuando los parametros pedidos al generador no describen una
+    instancia generable.
+
+    Igual que con un archivo mal formado, el programa debe responder con un
+    mensaje legible y un codigo de salida distinto de cero, nunca con una traza
+    sin controlar.
+    """
