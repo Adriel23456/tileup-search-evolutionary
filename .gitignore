@@ -6,7 +6,7 @@ __pycache__/
 .vscode/
 .idea/
 *.log
-
+TC1-tileup-vista-previa.pdf
 # Las soluciones y los CSV de resultados SI se versionan: el enunciado exige
 # entregar las instancias junto con las soluciones producidas, para que el
 # informe pueda verificarse con el validador.

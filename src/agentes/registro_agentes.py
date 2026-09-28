@@ -17,6 +17,7 @@ from typing import Callable, Dict, List
 from src.agentes.agente import Agente
 from src.agentes.agente_aleatorio import AgenteAleatorio
 from src.agentes.agente_busqueda import AgenteBusquedaAEstrella
+from src.agentes.agente_evolutivo import AgenteEvolutivo
 from src.agentes.heuristicas import HeuristicaCero, HeuristicaColoresPendientes
 
 
@@ -28,6 +29,9 @@ NOMBRE_AGENTE_BUSQUEDA = "busqueda_astar"
 
 # Nombre del agente de busqueda que sirve de linea base en el informe.
 NOMBRE_AGENTE_DIJKSTRA = "busqueda_dijkstra"
+
+# Nombre del agente evolutivo exigido por el enunciado.
+NOMBRE_AGENTE_EVOLUTIVO = "evolutivo"
 
 # Nombre del agente de linea base que coloca al azar.
 NOMBRE_AGENTE_ALEATORIO = "aleatorio"
@@ -50,6 +54,7 @@ class RegistroAgentes:
         self.registrar(NOMBRE_AGENTE_ALEATORIO, self._construir_aleatorio)
         self.registrar(NOMBRE_AGENTE_BUSQUEDA, self._construir_busqueda_astar)
         self.registrar(NOMBRE_AGENTE_DIJKSTRA, self._construir_busqueda_dijkstra)
+        self.registrar(NOMBRE_AGENTE_EVOLUTIVO, self._construir_evolutivo)
 
     def registrar(self, nombre: str, constructor: ConstructorAgente) -> None:
         """Inscribe un constructor bajo el nombre indicado."""
@@ -108,3 +113,7 @@ class RegistroAgentes:
             nombre=NOMBRE_AGENTE_DIJKSTRA,
             heuristica=HeuristicaCero(),
         )
+
+    def _construir_evolutivo(self, semilla: int) -> Agente:
+        """Construye el algoritmo genetico de estado estacionario."""
+        return AgenteEvolutivo(semilla=semilla)

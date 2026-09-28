@@ -20,3 +20,5 @@ busqueda_astar,ejemplo_n5_k3_m12,5,3,12,1,victoria,12,6,11,17.943737,68428,nodos
 busqueda_astar,ejemplo_n4_k3_m6,4,3,6,0,victoria,6,3,6,0.061756,502,nodos_expandidos,2026-09-20T05:39:03,datos\soluciones\busqueda_astar\ejemplo_n4_k3_m6__busqueda_astar__s0.sol
 aleatorio,ciega_n5_k4_m15,5,4,15,3,victoria,15,11,10,0.000292,293,colocaciones_evaluadas,2026-09-20T05:39:23,datos\soluciones\aleatorio\ciega_n5_k4_m15__aleatorio__s3.sol
 busqueda_astar,ciega_n5_k4_m15,5,4,15,3,victoria,15,8,10,8.928398,57297,nodos_expandidos,2026-09-20T05:39:32,datos\soluciones\busqueda_astar\ciega_n5_k4_m15__busqueda_astar__s3.sol
+evolutivo,ejemplo_n5_k3_m12,5,3,12,7,victoria,12,3,12,9.800388,29619,evaluaciones_aptitud,2026-09-28T06:50:19,datos/soluciones/evolutivo/ejemplo_n5_k3_m12__evolutivo__s7.sol
+evolutivo,ejemplo_n6_k4_m24,6,4,24,17,victoria,24,4,18,1.960901,2497,evaluaciones_aptitud,2026-09-28T06:53:33,datos/soluciones/evolutivo/ejemplo_n6_k4_m24__evolutivo__s17.sol

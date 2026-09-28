@@ -280,6 +280,7 @@ resultados/experimentos/             Bitacora de ejecuciones de agentes.
 | `aleatorio` | Coloca cada ficha en una celda vacia al azar. Linea base inferior. | `colocaciones_evaluadas` |
 | `busqueda_astar` | A* con la heuristica admisible de colores pendientes. Es el agente de busqueda del enunciado. | `nodos_expandidos` |
 | `busqueda_dijkstra` | A* con `h = 0`, es decir Dijkstra. Linea base para medir el aporte de la heuristica. | `nodos_expandidos` |
+| `evolutivo` | Algoritmo genetico de estado estacionario con mutacion guiada. | `evaluaciones_aptitud` |
 
 Agregar un agente consiste en implementar la interfaz `Agente` e inscribirlo
 en `RegistroAgentes`. Ningun otro archivo del sistema cambia.
@@ -410,6 +411,61 @@ reglas fijas: en la lista abierta, menor `f`, luego menor `h`, luego orden de
 insercion; en el completado avido, menor costo, luego menor fila y columna.
 Dos ejecuciones sobre la misma instancia producen siempre la misma solucion,
 sin importar la semilla.
+
+## Agente evolutivo
+
+El agente `evolutivo` usa un algoritmo genetico de estado estacionario. Cada
+individuo contiene `M` genes y cada gen es la coordenada `(fila, columna)`
+propuesta para la ficha de esa posicion.
+
+### Aptitud y factibilidad
+
+Un individuo se simula con el motor sobre una copia del estado inicial. Cuando
+un gen apunta a una celda ocupada, se suma una reparacion y se usa una
+colocacion virtual para poder evaluar los genes posteriores. La colocacion
+virtual se elige con una heuristica determinista: mayor fusion inmediata,
+menor distancia Manhattan al gen original y, finalmente, menor fila y
+columna. La reparacion no modifica el cromosoma ni puede aparecer en la
+solucion entregada.
+
+La aptitud inicial es:
+
+```text
+100 * fichas_colocadas - 10 * celdas_ocupadas - 25 * reparaciones
+```
+
+Las fusiones se registran para analizar el comportamiento y guiar la mutacion,
+pero no se suman otra vez a la aptitud: para una misma cantidad de fichas,
+dejar menos celdas ocupadas ya expresa el espacio liberado por las fusiones.
+El agente mantiene aparte el mejor individuo con cero reparaciones y solo ese
+tipo de individuo puede convertirse en solucion.
+
+### Seleccion y variacion
+
+La seleccion es por torneo de tres individuos. Con probabilidad `0.70` se
+aplica cruce de un punto; en el caso contrario el hijo parte como copia de un
+padre. Despues se elige uniformemente mutar 0, 1, 2 o 3 genes. Las posiciones
+son distintas y una mutacion guiada prefiere la celda que produzca la mayor
+fusion inmediata, con desempates deterministas.
+
+El caso sin cruce y con cero mutaciones conserva una copia del padre y reutiliza
+su aptitud, ya que volver a simular el mismo cromosoma no aporta informacion.
+El reemplazo es elitista de estado estacionario: un hijo sustituye al peor
+individuo solo cuando lo supera.
+
+### Poblacion, paro y esfuerzo
+
+La poblacion inicial tiene 30 individuos. Primero se construye un plan legal
+guiado por fusiones para disponer inmediatamente de una solucion entregable;
+los restantes se construyen con elecciones legales aleatorias derivadas de la
+semilla.
+
+El agente crea y evalua hijos hasta agotar el limite de tiempo, reservando un
+margen pequeno para devolver la mejor solucion almacenada. La medida de
+esfuerzo es `evaluaciones_aptitud`: una clonacion que reutiliza una aptitud no
+incrementa este contador. Los pesos, el tamano de poblacion y la probabilidad
+de cruce son valores iniciales que deben calibrarse experimentalmente.
+
 
 ## Decisiones de diseno
 
