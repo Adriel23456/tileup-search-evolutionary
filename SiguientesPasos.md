@@ -11,6 +11,7 @@ Inteligencia Artificial (IC-6200) - Instituto Tecnologico de Costa Rica
 |---|---|---|
 | Motor y validador | 12 | Completo |
 | Agente de busqueda | 16 | Completo |
+| Generador de instancias (Etapa A) | - | Completo |
 | Agente evolutivo | 16 | No iniciado |
 | Comparacion experimental | 14 | No iniciado |
 | Escalabilidad (grupo de 3) | 12 | No iniciado |
@@ -42,7 +43,7 @@ Los pendientes de infraestructura estan cerrados y verificados en frio:
 
 ---
 
-## Etapa A - Generador de instancias
+## Etapa A - Generador de instancias  [COMPLETA]
 
 **Que es.** Un modulo que produce archivos de instancia a partir de N, K, M y
 una semilla, mas un subcomando `generar` para invocarlo.
@@ -59,6 +60,22 @@ menos en lugar de quien resuelve mejor.
 **Cuando esta listo.** El subcomando genera archivos que
 `python main.py instancia` acepta, y dos ejecuciones con la misma semilla
 producen el mismo archivo byte a byte.
+
+**Como quedo.** Ambas condiciones se cumplen y estan cubiertas por
+`pruebas/test_generador_instancia.py`.
+
+- `src/instancias/generador_instancia.py` construye la instancia jugando una
+  partida legal completa e inventando cada ficha en el momento de colocarla,
+  de modo que la lista de colocaciones resultante es un testigo de
+  resolubilidad. La unica regla especial es que cuando queda una sola celda
+  vacia y todavia faltan fichas, el color se copia de un vecino para forzar la
+  fusion que libera espacio. La fusion la aplica `MotorTileUp`: el generador no
+  reescribe ninguna regla del juego.
+- `src/instancias/escritor_instancia.py` escribe el formato oficial, con los
+  parametros anotados en la cabecera y salto de linea `\n` fijo.
+- `src/cli/comandos/comando_generar.py` expone el subcomando `generar`.
+- Queda pendiente solo para la Etapa C decidir el conjunto concreto de
+  configuraciones y semillas, y guardar esas instancias en `datos/instancias/`.
 
 ---
 

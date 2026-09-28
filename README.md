@@ -44,7 +44,7 @@ Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 A partir de aqui los comandos se escriben como `python`, asumiendo el entorno
 activo. Sin activarlo, sustituya `python` por `.venv\Scripts\python.exe`.
 
-## Un punto de entrada, cinco subcomandos
+## Un punto de entrada, seis subcomandos
 
 Todo el sistema se opera desde `main.py`.
 
@@ -58,6 +58,7 @@ python main.py --ayuda-completa
 | `validar` | Valida un archivo de solucion contra su instancia. |
 | `jugar` | Abre la ventana de juego para jugar una partida. |
 | `instancia` | Revisa el formato de un archivo de instancia. |
+| `generar` | Genera un archivo de instancia resoluble. |
 | `agentes` | Lista los agentes disponibles. |
 
 Codigos de salida, comunes a todos los subcomandos:
@@ -147,6 +148,103 @@ escribe el archivo de solucion y agrega una fila a
 
 La interfaz sirve unicamente para jugar: no ofrece forma de ejecutar agentes.
 
+## Subcomando `generar`
+
+Produce un archivo de instancia nuevo a partir de `N`, `K`, `M` y una semilla.
+Existe porque la comparacion experimental necesita decenas de instancias y a
+mano no es viable.
+
+```powershell
+python main.py generar --n 4 --k 3 --m 20 --semilla 1
+```
+
+| Argumento | Obligatorio | Descripcion |
+|---|---|---|
+| `--n` | Si | Lado del tablero. Mayor o igual a 1. |
+| `--k` | Si | Cantidad de colores. Mayor o igual a 1. |
+| `--m` | Si | Cantidad de fichas de la secuencia. No negativa. |
+| `--semilla` | No (`0`) | Fija toda fuente de azar del generador. |
+| `--etiqueta` | No (`gen`) | Familia a la que pertenece la instancia. Es el prefijo del nombre. |
+| `--salida` | No | Ruta exacta del archivo. Anula la convencion de nombrado. |
+
+Salida estandar:
+
+```text
+instancia=gen_s1_n4_k3_m20  (N=4, K=3, M=20)
+semilla=1
+archivo=datos\instancias\gen_s1_n4_k3_m20.txt
+colocaciones_testigo=20 (la instancia se construyo jugando una partida legal completa)
+```
+
+Sin `--salida`, el archivo se escribe en `datos/instancias/` con el patron
+`<etiqueta>_s<semilla>_n<N>_k<K>_m<M>.txt`. La semilla forma parte del nombre,
+de modo que varias semillas de una misma configuracion conviven sin
+sobreescribirse:
+
+```powershell
+python main.py generar --n 5 --k 3 --m 30 --semilla 1   # gen_s1_n5_k3_m30.txt
+python main.py generar --n 5 --k 3 --m 30 --semilla 2   # gen_s2_n5_k3_m30.txt
+python main.py generar --n 5 --k 3 --m 30 --semilla 3   # gen_s3_n5_k3_m30.txt
+```
+
+La etiqueta sirve para distinguir familias de instancias, igual que `ejemplo` o
+`ciega` en las que ya estan versionadas. `--salida` ignora la convencion y
+escribe en la ruta exacta que se le indique.
+
+### Papel de la semilla
+
+Todo el azar del generador proviene de un unico generador sembrado con
+`--semilla`. Lo que se garantiza es una sola direccion, que es la que el
+enunciado exige: **los mismos `N`, `K`, `M` y semilla producen siempre el mismo
+archivo, byte a byte**. La direccion contraria no se promete, porque dos
+semillas distintas pueden coincidir por azar, sobre todo con `M` pequeno.
+
+El determinismo se sostiene en que el orden de recorrido es fijo, el salto de
+linea se escribe como `\n` en cualquier sistema y el archivo no lleva marcas de
+tiempo. Los parametros quedan anotados en un comentario de la cabecera, de modo
+que cualquier instancia del repositorio se puede regenerar leyendo su primera
+linea.
+
+```powershell
+python main.py generar --n 4 --k 3 --m 20 --semilla 1 --salida a.txt
+python main.py generar --n 4 --k 3 --m 20 --semilla 1 --salida b.txt
+fc a.txt b.txt
+```
+
+### Como se garantiza que la instancia sea resoluble
+
+Una secuencia enteramente aleatoria con `M` mayor que `N^2` puede ser imposible
+para cualquier agente, y entonces la comparacion mediria quien pierde menos en
+lugar de quien resuelve mejor. El generador lo evita por construccion: **no
+inventa la secuencia y despues comprueba si se puede ganar, sino que juega una
+partida legal completa e inventa cada ficha en el momento de colocarla**. La
+lista de colocaciones que resulta es un testigo de que la instancia tiene al
+menos una solucion.
+
+Que la partida nunca se atasque descansa en una observacion: colocar una ficha
+ocupa a lo sumo una celda neta, porque sin fusion ocupa una y con una fusion de
+tamano `|G|` se retiran `|G|` celdas y queda una, es decir se liberan `|G| - 1`.
+Basta entonces mantener el invariante de que al empezar cada paso quede al menos
+una celda vacia, y para eso el generador aplica una sola regla especial:
+
+- Con dos o mas celdas vacias, la eleccion es libre: celda al azar y color
+  uniforme en `1..K`.
+- Con **una sola celda vacia y fichas todavia pendientes**, colocar sin fusion
+  llenaria el tablero y perderia la partida. El generador copia entonces el
+  color de un vecino de esa celda. Como es la unica vacia, todos sus vecinos
+  estan ocupados, de modo que `|G| >= 2`, la fusion libera `|G| - 1 >= 1` celdas
+  y el invariante se restablece.
+- Con una sola celda vacia y siendo esa la ultima ficha, se coloca y se gana.
+
+La regla de fusion no se reescribe en el generador: la aplica `MotorTileUp`, el
+mismo motor que usan el jugador humano y los agentes. El unico caso que el
+generador rechaza es `N = 1` con `M > 1`, porque una celda sin vecinos nunca
+puede fusionar.
+
+Los valores de las fichas son enteros uniformes en `1..9`. El enunciado solo
+exige que sean positivos; un solo digito mantiene el archivo legible y la fusion
+ya se encarga de que aparezcan valores grandes durante la partida.
+
 ## Subcomandos `instancia` y `agentes`
 
 ```powershell
@@ -228,7 +326,8 @@ las colocaciones que el agente alcanzo a realizar.
 
 | Directorio | Patron |
 |---|---|
-| `datos/instancias/` | `<etiqueta>_n<N>_k<K>_m<M>.txt` |
+| `datos/instancias/` (generadas) | `<etiqueta>_s<semilla>_n<N>_k<K>_m<M>.txt` |
+| `datos/instancias/` (escritas a mano) | `<etiqueta>_n<N>_k<K>_m<M>.txt` |
 | `datos/soluciones/<agente>/` | `<instancia>__<agente>__s<semilla>.sol` |
 | `resultados/humano/` | `partidas_humanas.csv` |
 | `resultados/experimentos/` | `comparacion_agentes.csv` |
@@ -236,6 +335,11 @@ las colocaciones que el agente alcanzo a realizar.
 Todo en minusculas, sin espacios ni caracteres especiales del espanol. El
 modulo `src/nombrado/nombres_archivos.py` es la unica fuente de estos
 patrones.
+
+El nombre de una instancia generada lleva su semilla, para que la bateria
+experimental pueda correr varias semillas por configuracion sin que una
+sobreescriba a la anterior. Las instancias escritas a mano no tienen semilla
+y por eso omiten ese campo.
 
 Los agentes de busqueda son todos el mismo algoritmo A*; lo unico que cambia
 entre ellos es la heuristica. Por eso su nombre sigue el patron
@@ -245,10 +349,10 @@ soluciones y el nombre de la heuristica digan siempre lo mismo.
 ## Organizacion del repositorio
 
 ```text
-main.py            Punto de entrada unico, con cinco subcomandos.
+main.py            Punto de entrada unico, con seis subcomandos.
 
 src/dominio/       Reglas puras del juego: ficha, tablero, estado y motor.
-src/instancias/    Lectura y validacion del formato de entrada.
+src/instancias/    Lectura, escritura y generacion del formato de entrada.
 src/soluciones/    Acumulacion y escritura del formato de salida.
 src/partidas/      Orquestacion de partidas, observadores y ejecutor.
 src/agentes/       Contrato de agente, heuristicas y agentes concretos.

@@ -9,13 +9,14 @@ from src.cli.registro_comandos import (
 
 
 def test_todos_los_subcomandos_esperados_estan_registrados():
-    """El programa debe exponer los cinco subcomandos documentados."""
+    """El programa debe exponer los seis subcomandos documentados."""
     nombres = RegistroComandos().nombres_disponibles()
 
     assert "resolver" in nombres
     assert "validar" in nombres
     assert "jugar" in nombres
     assert "instancia" in nombres
+    assert "generar" in nombres
     assert "agentes" in nombres
 
 
