@@ -1,0 +1,18 @@
+{
+  "experiment": "comparacion",
+  "descripcion": "Comparacion experimental formal exigida por el enunciado: ambos agentes sobre el mismo conjunto de instancias, seis configuraciones distintas de N, K y M, tres semillas por configuracion.",
+  "origen_de_las_configuraciones": "Elegidas a partir del piloto (experimentos/configuracion/piloto.json, resultados/experimentos/piloto/crudo.csv) para cubrir los regimenes observados de A*: alcanza la meta en la busqueda con holgura (n3_k4_m14, n4_k4_m8), deja de alcanzarla por reloj y recurre al completado (n4_k2_m16, n5_k2_m13), y agota el tope de 120000 nodos del agente antes que el reloj (n5_k4_m25, n6_k4_m36). Es una decision experimental nuestra, no una lista del enunciado.",
+  "timeout_s": 10,
+  "nota_timeout": "Limite comun a todas las corridas formales, fijado despues del piloto.",
+  "agentes": ["busqueda_astar", "evolutivo"],
+  "semillas": [1, 2, 3],
+  "nota_semillas": "Semillas pareadas: la semilla s genera la instancia (instance_seed) y la misma s se entrega al agente (agent_seed). Ambos agentes corren sobre el mismo archivo.",
+  "configuraciones": [
+    {"N": 3, "K": 4, "M": 14},
+    {"N": 4, "K": 4, "M": 8},
+    {"N": 4, "K": 2, "M": 16},
+    {"N": 5, "K": 2, "M": 13},
+    {"N": 5, "K": 4, "M": 25},
+    {"N": 6, "K": 4, "M": 36}
+  ]
+}

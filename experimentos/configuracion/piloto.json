@@ -1,0 +1,15 @@
+{
+  "experiment": "piloto",
+  "descripcion": "Fase exploratoria. Su unico objetivo es aportar evidencia para elegir las configuraciones finales de la comparacion, los valores de N y K de la escalabilidad y el limite de tiempo. No es la comparacion formal y sus corridas no cuentan como las tres semillas que exige el enunciado.",
+  "nota_rho": "rho = M / N^2 es una herramienta metodologica nuestra para fijar la cantidad de fichas respecto al tamano del tablero; no es un requisito del enunciado. M = floor(rho * N^2 + 0.5).",
+  "timeout_s": 10,
+  "nota_timeout": "Limite provisional. Se decide despues del piloto si produce un rango experimental util.",
+  "agentes": ["busqueda_astar", "evolutivo"],
+  "semillas": [1],
+  "nota_semillas": "Semillas pareadas: la semilla s genera la instancia y la misma s se entrega al agente. Una sola semilla basta en esta fase exploratoria.",
+  "rejilla": {
+    "N": [3, 4, 5, 6],
+    "K": [2, 4],
+    "rho": [0.5, 1.0, 1.5]
+  }
+}

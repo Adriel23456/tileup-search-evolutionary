@@ -1,0 +1,175 @@
+{
+  "experiment": "piloto",
+  "configuracion": "experimentos/configuracion/piloto.json",
+  "sha256_configuracion": "6021e3bb7ece206262dd6200c9377fad5194ac6b51f14c7c07deb7c390cc1420",
+  "sha256_guiones": {
+    "experimentos/bateria.py": "fdb3f550f9076aacc136c6ed7b85cec3b13c82621ef0244ed1ac5942e9a2059c",
+    "experimentos/corrida.py": "e68ffb09f54bcdb7e3c51d77aac28774e4c82d94bcab094470cef1c2279e9416",
+    "experimentos/registro.py": "140c3d44d82f08b371aea9ae6d7f59a997967e44a5d76caf4f946de2cdede38a"
+  },
+  "agentes": [
+    "busqueda_astar",
+    "evolutivo"
+  ],
+  "semillas_pareadas": [
+    1
+  ],
+  "timeout_s": 10.0,
+  "configuraciones": [
+    {
+      "N": 3,
+      "K": 2,
+      "M": 5,
+      "rho": 0.5
+    },
+    {
+      "N": 3,
+      "K": 2,
+      "M": 9,
+      "rho": 1.0
+    },
+    {
+      "N": 3,
+      "K": 2,
+      "M": 14,
+      "rho": 1.5
+    },
+    {
+      "N": 3,
+      "K": 4,
+      "M": 5,
+      "rho": 0.5
+    },
+    {
+      "N": 3,
+      "K": 4,
+      "M": 9,
+      "rho": 1.0
+    },
+    {
+      "N": 3,
+      "K": 4,
+      "M": 14,
+      "rho": 1.5
+    },
+    {
+      "N": 4,
+      "K": 2,
+      "M": 8,
+      "rho": 0.5
+    },
+    {
+      "N": 4,
+      "K": 2,
+      "M": 16,
+      "rho": 1.0
+    },
+    {
+      "N": 4,
+      "K": 2,
+      "M": 24,
+      "rho": 1.5
+    },
+    {
+      "N": 4,
+      "K": 4,
+      "M": 8,
+      "rho": 0.5
+    },
+    {
+      "N": 4,
+      "K": 4,
+      "M": 16,
+      "rho": 1.0
+    },
+    {
+      "N": 4,
+      "K": 4,
+      "M": 24,
+      "rho": 1.5
+    },
+    {
+      "N": 5,
+      "K": 2,
+      "M": 13,
+      "rho": 0.5
+    },
+    {
+      "N": 5,
+      "K": 2,
+      "M": 25,
+      "rho": 1.0
+    },
+    {
+      "N": 5,
+      "K": 2,
+      "M": 38,
+      "rho": 1.5
+    },
+    {
+      "N": 5,
+      "K": 4,
+      "M": 13,
+      "rho": 0.5
+    },
+    {
+      "N": 5,
+      "K": 4,
+      "M": 25,
+      "rho": 1.0
+    },
+    {
+      "N": 5,
+      "K": 4,
+      "M": 38,
+      "rho": 1.5
+    },
+    {
+      "N": 6,
+      "K": 2,
+      "M": 18,
+      "rho": 0.5
+    },
+    {
+      "N": 6,
+      "K": 2,
+      "M": 36,
+      "rho": 1.0
+    },
+    {
+      "N": 6,
+      "K": 2,
+      "M": 54,
+      "rho": 1.5
+    },
+    {
+      "N": 6,
+      "K": 4,
+      "M": 18,
+      "rho": 0.5
+    },
+    {
+      "N": 6,
+      "K": 4,
+      "M": 36,
+      "rho": 1.0
+    },
+    {
+      "N": 6,
+      "K": 4,
+      "M": 54,
+      "rho": 1.5
+    }
+  ],
+  "entorno": {
+    "commit": "20358c07e75a5f899f178de8531a1c7daca42378",
+    "cambios_sin_confirmar": true,
+    "python": "3.14.7",
+    "plataforma": "Windows-11-10.0.26200-SP0",
+    "procesador": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",
+    "nucleos_logicos": 32,
+    "fecha": "2026-09-30T14:06:17"
+  },
+  "inicio": "2026-09-30T14:06:17",
+  "fin": "2026-09-30T14:12:45"
+}

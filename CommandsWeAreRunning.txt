@@ -111,10 +111,14 @@ python -m pytest pruebas -q
 python -m pytest pruebas -v
 
 
-# --- Regenerar todas las soluciones desde cero -------------------------
+# --- Regenerar las soluciones de demostracion desde cero ---------------
 # Util antes de un commit de entrega, para que las soluciones versionadas
-# correspondan al codigo vigente.
-Remove-Item -Recurse -Force datos\soluciones\*
+# correspondan al codigo vigente. Solo borra las soluciones de las instancias
+# de demostracion (ejemplo_* y ciega_*). NUNCA borrar datos\soluciones\* entero:
+# ahi viven tambien las soluciones de las baterias experimentales (piloto_*,
+# comparacion_*, escalabilidad_*), que son evidencia versionada del informe.
+# Tampoco borra las partidas humanas: ningun comando puede regenerarlas.
+Get-ChildItem datos\soluciones -Recurse -File -Include ejemplo_*.sol, ciega_*.sol | Where-Object { $_.Directory.Name -ne 'humano' } | Remove-Item
 # resolver ya no escribe resultados\experimentos\comparacion_agentes.csv salvo
 # con --bitacora, asi que ese registro historico no se borra ni se regenera aqui.
 python main.py resolver --instancia datos\instancias\ejemplo_n4_k3_m6.txt --agentes aleatorio busqueda_astar busqueda_dijkstra --semilla 0 --limite-tiempo 15

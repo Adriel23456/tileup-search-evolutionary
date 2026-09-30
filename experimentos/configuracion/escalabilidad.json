@@ -1,0 +1,16 @@
+{
+  "experiment": "escalabilidad",
+  "descripcion": "Estudio de escalabilidad del modulo para grupos de tres: bateria factorial de tres valores de N por tres valores de K, con tres semillas por configuracion y ambos agentes.",
+  "diseno": "Factorial completo N x K. Al estudiar K, N y M quedan fijos en cada fila y solo cambia K. Al estudiar N, K queda fijo en cada columna y M crece con el tablero a densidad constante.",
+  "nota_rho": "rho = M / N^2 es una decision experimental nuestra, no un requisito del enunciado. Se fija rho = 0.5 para mantener aproximadamente constante la carga respecto al area del tablero y porque, segun el piloto, coloca dentro del rango N = 3..5 la transicion de A* entre alcanzar la meta en la busqueda y cortarla. M = floor(rho * N^2 + 0.5), redondeo hacia arriba en la mitad: N=3 -> M=5, N=4 -> M=8, N=5 -> M=13.",
+  "timeout_s": 10,
+  "nota_timeout": "Limite comun a todas las corridas formales, fijado despues del piloto.",
+  "agentes": ["busqueda_astar", "evolutivo"],
+  "semillas": [1, 2, 3],
+  "nota_semillas": "Semillas pareadas: la semilla s genera la instancia (instance_seed) y la misma s se entrega al agente (agent_seed). Ambos agentes corren sobre el mismo archivo.",
+  "rejilla": {
+    "N": [3, 4, 5],
+    "K": [2, 3, 4],
+    "rho": [0.5]
+  }
+}
