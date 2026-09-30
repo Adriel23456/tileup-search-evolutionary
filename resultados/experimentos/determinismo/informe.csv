@@ -1,0 +1,9 @@
+instance,agent,agent_seed,timeout_s,runs,n_ok,distinct_solutions,identical_solutions,solution_sha256,tiles_placed_values,occupied_cells_values,largest_tile_values,search_cutoff_values,effort_type,effort_min,effort_max,effort_range_pct,elapsed_min_s,elapsed_max_s,statuses
+ejemplo_n4_k3_m6,busqueda_astar,1,10.000000,5,5,1,True,bbc13b181996aca6b650ab3e0c6ce184d1b7ff625a9a1766400a903286857e46,6,3,6,False,expanded_nodes,502,502,0.00,0.0455,0.0478,ok
+ejemplo_n4_k3_m6,evolutivo,1,10.000000,5,5,1,True,fd6efcd556be976d3042ab3b170fdf9519bdcb18568c2c03eacfb00450f490cf,6,3,6,,fitness_evaluations,92071,93581,1.64,9.8000,9.8002,ok
+ejemplo_n5_k3_m12,busqueda_astar,1,10.000000,5,5,1,True,398eb0298b53bcaf31682a9975d7bb7a31618dc6e7b13c156a8124d35dab9c5c,12,6,11,True,expanded_nodes,53452,56341,5.40,8.7748,8.7920,ok
+ejemplo_n5_k3_m12,evolutivo,1,10.000000,5,5,1,True,d0c0391cdb8dbb5e06dd0d194980171c30704463cc01e87367b74e663b9ac499,12,3,12,,fitness_evaluations,45309,48467,6.97,9.8000,9.8001,ok
+ciega_n5_k4_m15,busqueda_astar,1,10.000000,5,5,1,True,9c6c171fb2f5fbec9d60ca0ef1ce48ea07dc39c360d78168ed17a79a1ed9077b,15,8,10,True,expanded_nodes,64256,74806,16.42,8.7608,8.8331,ok
+ciega_n5_k4_m15,evolutivo,1,10.000000,5,5,1,True,d56e1226949471bbbdd809eddb78cd9dbc712c7bfaa31602d580c39d0da11329,15,4,11,,fitness_evaluations,39590,40979,3.51,9.8000,9.8002,ok
+ejemplo_n6_k4_m24,busqueda_astar,1,10.000000,5,5,1,True,59c7a6e0af6c3700da49cb7901a661f11346fdf9ab04b065379cc56422054990,24,18,11,True,expanded_nodes,56768,59236,4.35,8.7859,8.8245,ok
+ejemplo_n6_k4_m24,evolutivo,1,10.000000,5,5,1,True,bd0f1c11804d552281f48e7032a1b1cd030f509bd79f317bdfa76bdc96335f11,24,4,18,,fitness_evaluations,25934,27104,4.51,9.8001,9.8020,ok

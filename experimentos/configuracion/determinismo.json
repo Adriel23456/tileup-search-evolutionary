@@ -1,0 +1,21 @@
+{
+  "experiment": "determinismo",
+  "descripcion": "Prueba oficial del requisito de determinismo del enunciado: repeticiones con entradas identicas (misma instancia, mismo agente, misma semilla y mismo limite de tiempo). Se comparan las soluciones por SHA-256. Es una puerta de control previa a la bateria.",
+  "origen_de_las_instancias": "Las cuatro instancias versionadas del repositorio. En ellas la bitacora historica ya mostro esfuerzos distintos entre corridas identicas de A*, y cubren los dos regimenes: A* llega a la meta en ejemplo_n4_k3_m6 y corta la busqueda en las otras tres.",
+  "instancias": [
+    "datos/instancias/ejemplo_n4_k3_m6.txt",
+    "datos/instancias/ejemplo_n5_k3_m12.txt",
+    "datos/instancias/ciega_n5_k4_m15.txt",
+    "datos/instancias/ejemplo_n6_k4_m24.txt"
+  ],
+  "agentes": ["busqueda_astar", "evolutivo"],
+  "semilla_agente": 1,
+  "timeout_s": 10,
+  "nota_timeout": "10 s es el limite de esta verificacion, no el limite final de la bateria, que se fija despues del piloto.",
+  "repeticiones": 5,
+  "diagnostico": {
+    "experiment": "determinismo_diagnostico",
+    "descripcion": "Diagnostico opcional de sensibilidad al computo disponible: misma instancia, agente y semilla con distintos limites de tiempo. Como el limite cambia, NO son entradas identicas; no prueba ni refuta el determinismo.",
+    "timeouts_s": [5, 10, 20]
+  }
+}

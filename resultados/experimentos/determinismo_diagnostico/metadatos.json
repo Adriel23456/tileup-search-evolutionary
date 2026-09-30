@@ -1,0 +1,28 @@
+{
+  "experiment": "determinismo_diagnostico",
+  "fase": "diagnostico",
+  "configuracion": "experimentos/configuracion/determinismo.json",
+  "sha256_configuracion": "945c8c9352873d2e9125098921db7d31bdc12a88a65eb3fa6a7c54627311a332",
+  "agentes": [
+    "busqueda_astar",
+    "evolutivo"
+  ],
+  "semilla_agente": 1,
+  "timeouts_s": [
+    5,
+    10,
+    20
+  ],
+  "repeticiones": 1,
+  "entorno": {
+    "commit": "73bfeca335fa2e73178a657e98f3dfb0aafc1b31",
+    "cambios_sin_confirmar": true,
+    "python": "3.14.7",
+    "plataforma": "Windows-11-10.0.26200-SP0",
+    "procesador": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",
+    "nucleos_logicos": 32,
+    "fecha": "2026-09-30T13:51:22"
+  },
+  "inicio": "2026-09-30T13:51:22",
+  "fin": "2026-09-30T13:55:19"
+}

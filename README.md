@@ -85,6 +85,7 @@ python main.py resolver --instancia datos\instancias\ejemplo_n4_k3_m6.txt --agen
 | `--limite-tiempo` | No (`10`) | Limite de planificacion, en segundos. |
 | `--salida` | No | Ruta del archivo de solucion. Solo con `--agente`. |
 | `--silencioso` | No | Omite la barra de progreso. |
+| `--bitacora` | No | CSV al que se agrega una fila con las metricas. Sin esta opcion no se escribe ningun CSV. |
 
 Salida estandar:
 
@@ -93,7 +94,6 @@ Planificando con 'busqueda_astar' sobre ejemplo_n4_k3_m6  (N=4, K=3, M=6). Limit
 busqueda_astar [##############################] 6/6
 agente=busqueda_astar instancia=ejemplo_n4_k3_m6 semilla=0 resultado=victoria colocadas=6/6 ocupadas=3 mayor=6 tiempo_s=0.0625 nodos_expandidos=502
 solucion=D:\...\datos\soluciones\busqueda_astar\ejemplo_n4_k3_m6__busqueda_astar__s0.sol
-bitacora=resultados\experimentos\comparacion_agentes.csv
 ```
 
 Cuando la busqueda no alcanza la meta dentro del limite, el agente entrega la
@@ -103,9 +103,10 @@ mejor solucion encontrada y lo advierte por salida estandar:
 Nota: la busqueda se corto por tiempo o por nodos; la solucion se completo con la politica avida.
 ```
 
-Cada ejecucion escribe su archivo de solucion y agrega una fila a
-`resultados/experimentos/comparacion_agentes.csv` con las mismas metricas que
-imprime, de modo que la bitacora y la salida estandar nunca difieren.
+Cada ejecucion escribe su archivo de solucion e informa sus metricas por salida
+estandar. No escribe ningun CSV salvo que se indique `--bitacora RUTA`; en ese
+caso agrega a ese archivo una fila con las mismas metricas que imprime, de modo
+que la bitacora y la salida estandar nunca difieren.
 
 ## Subcomando `validar`
 
@@ -330,7 +331,7 @@ las colocaciones que el agente alcanzo a realizar.
 | `datos/instancias/` (escritas a mano) | `<etiqueta>_n<N>_k<K>_m<M>.txt` |
 | `datos/soluciones/<agente>/` | `<instancia>__<agente>__s<semilla>.sol` |
 | `resultados/humano/` | `partidas_humanas.csv` |
-| `resultados/experimentos/` | `comparacion_agentes.csv` |
+| `resultados/experimentos/` | `comparacion_agentes.csv` (registro historico de corridas sueltas) |
 
 Todo en minusculas, sin espacios ni caracteres especiales del espanol. El
 modulo `src/nombrado/nombres_archivos.py` es la unica fuente de estos
@@ -374,7 +375,7 @@ datos/soluciones/aleatorio/          SALIDA del agente de linea base.
 datos/soluciones/busqueda_astar/     SALIDA de A* con heuristica admisible.
 datos/soluciones/busqueda_dijkstra/  SALIDA de A* con h = 0.
 resultados/humano/                   Bitacora de partidas humanas.
-resultados/experimentos/             Bitacora de ejecuciones de agentes.
+resultados/experimentos/             Registro historico de ejecuciones de agentes.
 ```
 
 ## Agentes disponibles

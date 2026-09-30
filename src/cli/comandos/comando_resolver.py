@@ -97,6 +97,16 @@ class ComandoResolver(Comando):
             help="Omite la barra de progreso y deja solo las metricas.",
         )
 
+        analizador.add_argument(
+            "--bitacora",
+            type=str,
+            default=None,
+            help=(
+                "Ruta de un CSV al que se agrega una fila con las metricas de "
+                "cada ejecucion. Si se omite, no se escribe ningun CSV."
+            ),
+        )
+
     def ejecutar(self, argumentos: argparse.Namespace) -> int:
         """Despacha hacia la ejecucion de uno o de varios agentes."""
         if argumentos.agente is not None and argumentos.agentes is not None:
@@ -121,6 +131,7 @@ class ComandoResolver(Comando):
                 limite_tiempo_segundos=argumentos.limite_tiempo,
                 ruta_salida=argumentos.salida,
                 silencioso=argumentos.silencioso,
+                ruta_bitacora=argumentos.bitacora,
             )
 
         return self._ejecutor.ejecutar_comparacion(
@@ -129,4 +140,5 @@ class ComandoResolver(Comando):
             semilla=argumentos.semilla,
             limite_tiempo_segundos=argumentos.limite_tiempo,
             silencioso=argumentos.silencioso,
+            ruta_bitacora=argumentos.bitacora,
         )

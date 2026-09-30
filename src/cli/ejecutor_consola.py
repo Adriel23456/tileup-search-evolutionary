@@ -37,9 +37,6 @@ class EjecutorConsola:
         self._lector_instancia = LectorInstancia()
         self._registro_agentes = RegistroAgentes()
         self._ejecutor_agente = EjecutorAgente()
-        self._bitacora = BitacoraEjecuciones(
-            nombres_archivos.ruta_bitacora_ejecuciones()
-        )
 
     # ------------------------------------------------------------------
     # Ejecucion de un solo agente
@@ -48,12 +45,14 @@ class EjecutorConsola:
     def ejecutar_agente(self, ruta_instancia: str, nombre_agente: str,
                         semilla: int, limite_tiempo_segundos: float,
                         ruta_salida: Optional[str] = None,
-                        silencioso: bool = False) -> int:
+                        silencioso: bool = False,
+                        ruta_bitacora: Optional[str] = None) -> int:
         """
         Corre un agente sobre una instancia y reporta el resultado.
 
         Devuelve el codigo de salida del proceso: cero si todo fue bien, un
-        valor distinto de cero ante cualquier error controlado.
+        valor distinto de cero ante cualquier error controlado. Solo escribe
+        una bitacora CSV si se recibe su ruta.
         """
         codigo_validacion = self._validar_limite_tiempo(limite_tiempo_segundos)
 
@@ -72,6 +71,7 @@ class EjecutorConsola:
             limite_tiempo_segundos=limite_tiempo_segundos,
             ruta_salida=ruta_salida,
             silencioso=silencioso,
+            ruta_bitacora=ruta_bitacora,
         )
 
     # ------------------------------------------------------------------
@@ -81,7 +81,8 @@ class EjecutorConsola:
     def ejecutar_comparacion(self, ruta_instancia: str,
                              nombres_agentes: List[str], semilla: int,
                              limite_tiempo_segundos: float,
-                             silencioso: bool = False) -> int:
+                             silencioso: bool = False,
+                             ruta_bitacora: Optional[str] = None) -> int:
         """
         Corre varios agentes sobre la misma instancia y semilla.
 
@@ -108,6 +109,7 @@ class EjecutorConsola:
                 limite_tiempo_segundos=limite_tiempo_segundos,
                 ruta_salida=None,
                 silencioso=silencioso,
+                ruta_bitacora=ruta_bitacora,
             )
 
             if codigo_del_agente != CODIGO_SALIDA_EXITO:
@@ -142,7 +144,8 @@ class EjecutorConsola:
 
     def _correr_un_agente(self, instancia: Instancia, nombre_agente: str,
                           semilla: int, limite_tiempo_segundos: float,
-                          ruta_salida: Optional[str], silencioso: bool) -> int:
+                          ruta_salida: Optional[str], silencioso: bool,
+                          ruta_bitacora: Optional[str]) -> int:
         """Construye, ejecuta y reporta un agente sobre la instancia dada."""
         try:
             agente = self._registro_agentes.construir(nombre_agente, semilla)
@@ -171,13 +174,15 @@ class EjecutorConsola:
             observador=observador,
         )
 
-        # La fila de la bitacora se escribe con las mismas metricas que se
-        # imprimen, de modo que el CSV y la salida estandar nunca difieren.
-        self._bitacora.registrar(
-            metricas=resultado.metricas,
-            archivo_solucion=ruta_final,
-        )
-        
+        # La bitacora es opcional: resolver solo escribe un CSV cuando se le
+        # pide. Si se pide, la fila lleva las mismas metricas que se imprimen,
+        # de modo que el CSV y la salida estandar nunca difieren.
+        if ruta_bitacora is not None:
+            BitacoraEjecuciones(ruta_bitacora).registrar(
+                metricas=resultado.metricas,
+                archivo_solucion=ruta_final,
+            )
+
         if hasattr(agente, "alcanzo_la_meta") is True:
             if agente.alcanzo_la_meta is False:
                 print(
@@ -187,7 +192,9 @@ class EjecutorConsola:
 
         print(resultado.metricas.como_linea_estandar())
         print("solucion=" + resultado.ruta_solucion)
-        print("bitacora=" + nombres_archivos.ruta_bitacora_ejecuciones())
+
+        if ruta_bitacora is not None:
+            print("bitacora=" + ruta_bitacora)
 
         if resultado.colocaciones_rechazadas > 0:
             print(

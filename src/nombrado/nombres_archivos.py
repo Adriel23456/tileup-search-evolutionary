@@ -117,17 +117,6 @@ def ruta_instancia(etiqueta: str, semilla: int, dimension: int,
 DIRECTORIO_RESULTADOS = "resultados"
 
 
-def ruta_bitacora_ejecuciones() -> str:
-    """
-    Devuelve la ruta del CSV que acumula las ejecuciones de agentes.
-
-    Patron: resultados/experimentos/comparacion_agentes.csv
-    """
-    return os.path.join(
-        DIRECTORIO_RESULTADOS, "experimentos", "comparacion_agentes.csv"
-    )
-
-
 def ruta_bitacora_humana() -> str:
     """
     Devuelve la ruta del CSV que acumula las partidas humanas.

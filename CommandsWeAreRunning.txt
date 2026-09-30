@@ -115,7 +115,8 @@ python -m pytest pruebas -v
 # Util antes de un commit de entrega, para que las soluciones versionadas
 # correspondan al codigo vigente.
 Remove-Item -Recurse -Force datos\soluciones\*
-Remove-Item resultados\experimentos\comparacion_agentes.csv -ErrorAction SilentlyContinue
+# resolver ya no escribe resultados\experimentos\comparacion_agentes.csv salvo
+# con --bitacora, asi que ese registro historico no se borra ni se regenera aqui.
 python main.py resolver --instancia datos\instancias\ejemplo_n4_k3_m6.txt --agentes aleatorio busqueda_astar busqueda_dijkstra --semilla 0 --limite-tiempo 15
 python main.py resolver --instancia datos\instancias\ejemplo_n5_k3_m12.txt --agentes aleatorio busqueda_astar --semilla 1 --limite-tiempo 20
 python main.py resolver --instancia datos\instancias\ejemplo_n6_k4_m24.txt --agentes aleatorio busqueda_astar --semilla 7 --limite-tiempo 30
