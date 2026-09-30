@@ -272,6 +272,84 @@ mas, colocacion sin fusion y deteccion de derrota. Las pruebas de integracion
 resuelven una instancia pequena de principio a fin, comprueban el determinismo
 de la semilla y verifican con el validador que la solucion producida es legal.
 
+## Experimentacion
+
+Dos baterias formales, descritas en archivos de configuracion versionados.
+Todas las corridas pasan por la linea de comandos real (`generar`, `resolver`,
+`validar`); los guiones de `experimentos/` no reimplementan nada del juego.
+Los resultados y su interpretacion estan en `INFORME.md`.
+
+| Bateria | Objetivo | Configuraciones | Corridas |
+|---|---|---|---|
+| `comparacion` | Comparar ambos agentes sobre las mismas instancias, como exige el enunciado. | (N, K, M) = (3,4,14), (4,4,8), (4,2,16), (5,2,13), (5,4,25), (6,4,36) | 6 × 3 semillas × 2 agentes = 36 |
+| `escalabilidad` | Estudiar como crece el costo con N y con K. | N ∈ {3,4,5} × K ∈ {2,3,4}, con M = floor(0.5·N² + 0.5) | 9 × 3 semillas × 2 agentes = 54 |
+
+- **Agentes:** `busqueda_astar` y `evolutivo`.
+- **Limite de tiempo:** `T = 10 s`, el mismo para todas las corridas.
+- **Semillas pareadas `s = 1, 2, 3`:** la semilla `s` genera la instancia y esa
+  misma `s` se entrega al agente. Ambos agentes corren sobre el mismo archivo.
+- **`rho = M / N^2`:** es una decision metodologica del grupo, no un requisito
+  del enunciado.
+- **Validez:** una corrida solo es valida si termina `ok`, el validador la
+  acepta, sus metricas coinciden con las del validador y `clock_safeguard` es
+  `False` (ver *Criterio de paro y determinismo*).
+
+Comandos, desde la raiz y en este orden:
+
+```powershell
+python -m experimentos.bateria experimentos/configuracion/comparacion.json
+python -m experimentos.bateria experimentos/configuracion/escalabilidad.json
+python -m experimentos.revalidar comparacion
+python -m experimentos.revalidar escalabilidad
+python -m experimentos.resumen comparacion
+python -m experimentos.resumen escalabilidad
+python -m experimentos.graficas comparacion
+python -m experimentos.graficas escalabilidad
+```
+
+`bateria` no sobrescribe un `crudo.csv` existente salvo que se agregue
+`--sobrescribir`. `revalidar`, `resumen` y `graficas` solo leen el CSV crudo:
+no vuelven a ejecutar los agentes.
+
+Donde quedan los resultados:
+
+| Ruta | Contenido |
+|---|---|
+| `experimentos/configuracion/*.json` | Configuracion de cada bateria: configuraciones, semillas, agentes y limite. |
+| `datos/instancias/<bateria>_s<s>_n<N>_k<K>_m<M>.txt` | Instancias generadas. |
+| `datos/soluciones/<agente>/<instancia>__<agente>__s<s>.sol` | Soluciones producidas. |
+| `resultados/experimentos/<bateria>/crudo.csv` | Una fila por corrida. **Es la fuente primaria de verdad.** |
+| `resultados/experimentos/<bateria>/resumen.csv` | Por configuracion y agente: media, desviacion estandar, minimo y maximo entre semillas. |
+| `resultados/experimentos/<bateria>/registros.jsonl` | Comandos, stdout y stderr completos de cada corrida. |
+| `resultados/experimentos/<bateria>/metadatos.json` | Commit, maquina, Python y huellas de la configuracion y de los guiones. |
+| `resultados/experimentos/<bateria>/graficas/*.png` | Graficas generadas desde el CSV crudo. |
+
+Columnas principales de `crudo.csv`:
+
+| Columna | Significado |
+|---|---|
+| `instance_seed`, `agent_seed` | Semilla de la instancia y del agente. Coinciden por diseno, pero cumplen funciones distintas. |
+| `status` | `ok`, `rejected`, `mismatch`, `agent_error`, `killed` o `validator_error`. |
+| `validated` | El validador independiente acepto la solucion. |
+| `tiles_placed`, `occupied_cells`, `largest_tile` | Metricas que informa el agente. |
+| `validator_tiles`, `validator_occupied`, `validator_largest` | Las mismas metricas, reproducidas por el validador. |
+| `elapsed_s` | Tiempo de planificacion del agente, en segundos. |
+| `effort`, `effort_type` | `expanded_nodes` (A*) o `fitness_evaluations` (evolutivo). Unidades distintas, no comparables entre si. |
+| `complete` | La solucion consumio toda la secuencia. |
+| `search_cutoff` | Solo A*: la busqueda termino sin alcanzar la meta y la partida se completo de forma avida. |
+| `clock_safeguard` | El reloj de salvaguarda actuo antes que el presupuesto; la corrida no seria reproducible. |
+| `solution_path`, `solution_sha256` | Solucion producida y su huella, para comprobar reproducibilidad. |
+
+La carpeta `resultados/experimentos/` conserva ademas evidencia historica que
+**no** forma parte de los resultados formales:
+
+- el piloto con el que se eligieron las configuraciones (`piloto/`);
+- las pruebas de determinismo con el criterio de paro anterior (`determinismo/`,
+  `determinismo_diagnostico/`) y con el actual (`determinismo_presupuesto_*`);
+- la comprobacion del evolutivo con presupuesto (`comprobacion_evolutivo/`);
+- las baterias interrumpidas al detectar el problema de determinismo
+  (`*_criterio_reloj/`).
+
 ## Reglas del juego
 
 - El tablero es una cuadricula de `N x N` celdas, inicialmente vacia.
@@ -371,6 +449,9 @@ src/cli/           Subcomandos y ejecucion por consola.
 src/gui/           Ventana de juego humano.
 
 pruebas/           Pruebas unitarias y de integracion.
+
+experimentos/      Guiones de las baterias experimentales y sus configuraciones.
+INFORME.md         Resultados e interpretacion de los experimentos.
 ```
 
 Flujo de datos:
@@ -381,8 +462,11 @@ datos/soluciones/humano/             SALIDA de las partidas humanas.
 datos/soluciones/aleatorio/          SALIDA del agente de linea base.
 datos/soluciones/busqueda_astar/     SALIDA de A* con heuristica admisible.
 datos/soluciones/busqueda_dijkstra/  SALIDA de A* con h = 0.
+datos/soluciones/evolutivo/          SALIDA del agente evolutivo.
 resultados/humano/                   Bitacora de partidas humanas.
-resultados/experimentos/             Registro historico de ejecuciones de agentes.
+resultados/experimentos/<bateria>/   Resultados de cada bateria experimental.
+resultados/experimentos/comparacion_agentes.csv
+                                     Registro historico de corridas sueltas.
 ```
 
 ## Agentes disponibles
@@ -678,6 +762,7 @@ de modo que `resolver` y `validar` nunca cargan Tkinter.
 |---|---|
 | NumPy | Matrices contiguas para el tablero. |
 | pytest | Marco de pruebas. |
+| matplotlib | Graficas de la experimentacion. No lo usa ningun agente. |
 
 La cola de prioridad de A* es `heapq` de la biblioteca estandar. El motor, la
 busqueda y la heuristica estan escritos integramente en este repositorio: no

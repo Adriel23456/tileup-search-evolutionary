@@ -41,7 +41,9 @@ python main.py instancia --instancia datos\instancias\ejemplo_n4_k3_m6.txt
 # La semilla va en el nombre, asi que varias semillas no se pisan entre si.
 python main.py generar --n 4 --k 3 --m 20 --semilla 1
 python main.py generar --n 4 --k 3 --m 20 --semilla 2
-python main.py generar --n 5 --k 3 --m 30 --semilla 1 --etiqueta escalabilidad
+# No usar como etiqueta 'comparacion', 'escalabilidad' ni 'piloto': son los
+# prefijos de las instancias de las baterias experimentales.
+python main.py generar --n 5 --k 3 --m 30 --semilla 1 --etiqueta prueba
 python main.py generar --n 4 --k 3 --m 20 --semilla 1 --salida datos\instancias\mi_prueba.txt
 
 # La instancia generada la acepta el parser y se puede resolver de inmediato.
@@ -86,8 +88,11 @@ python main.py validar --instancia datos\instancias\ejemplo_n5_k3_m12.txt --solu
 
 
 # --- Validar todas las soluciones del repositorio ----------------------
-powershell -ExecutionPolicy Bypass -File validar_lote.ps1
-echo $LASTEXITCODE
+# Soluciones de las baterias experimentales: se revalidan sin ejecutar agentes.
+python -m experimentos.revalidar comparacion
+python -m experimentos.revalidar escalabilidad
+# Soluciones de demostracion (ejemplo_* y ciega_*): una validacion por archivo.
+Get-ChildItem datos\soluciones -Recurse -File -Include ejemplo_*.sol, ciega_*.sol | ForEach-Object { python main.py validar --instancia ("datos\instancias\" + ($_.BaseName -split '__')[0] + ".txt") --solucion $_.FullName }
 
 
 # --- Prueba de la instancia no publicada -------------------------------
@@ -111,6 +116,28 @@ python -m pytest pruebas -q
 python -m pytest pruebas -v
 
 
+# --- Baterias experimentales (Etapa C) ---------------------------------
+# Configuraciones congeladas en experimentos\configuracion\. Los resultados
+# formales ya estan versionados en resultados\experimentos\comparacion\ y
+# resultados\experimentos\escalabilidad\. bateria.py se niega a sobrescribir
+# un crudo.csv existente: re-ejecutar exige --sobrescribir y reemplaza los
+# resultados formales, asi que solo debe hacerse a proposito.
+python -m experimentos.bateria experimentos\configuracion\comparacion.json
+python -m experimentos.bateria experimentos\configuracion\escalabilidad.json
+
+# Revalidacion, resumen y graficas: solo leen el crudo.csv, no ejecutan agentes.
+python -m experimentos.revalidar comparacion
+python -m experimentos.revalidar escalabilidad
+python -m experimentos.resumen comparacion
+python -m experimentos.resumen escalabilidad
+python -m experimentos.graficas comparacion
+python -m experimentos.graficas escalabilidad
+
+# Prueba de determinismo con entradas identicas. --experimento elige la carpeta
+# de resultados para no sobrescribir una sesion anterior.
+python -m experimentos.determinismo --experimento determinismo_presupuesto_sesion3
+
+
 # --- Regenerar las soluciones de demostracion desde cero ---------------
 # Util antes de un commit de entrega, para que las soluciones versionadas
 # correspondan al codigo vigente. Solo borra las soluciones de las instancias
@@ -125,4 +152,4 @@ python main.py resolver --instancia datos\instancias\ejemplo_n4_k3_m6.txt --agen
 python main.py resolver --instancia datos\instancias\ejemplo_n5_k3_m12.txt --agentes aleatorio busqueda_astar --semilla 1 --limite-tiempo 20
 python main.py resolver --instancia datos\instancias\ejemplo_n6_k4_m24.txt --agentes aleatorio busqueda_astar --semilla 7 --limite-tiempo 30
 python main.py resolver --instancia datos\instancias\ciega_n5_k4_m15.txt --agentes aleatorio busqueda_astar --semilla 3 --limite-tiempo 10
-powershell -ExecutionPolicy Bypass -File validar_lote.ps1
+Get-ChildItem datos\soluciones -Recurse -File -Include ejemplo_*.sol, ciega_*.sol | ForEach-Object { python main.py validar --instancia ("datos\instancias\" + ($_.BaseName -split '__')[0] + ".txt") --solucion $_.FullName }

@@ -12,7 +12,7 @@ herramientas de IA, en que partes y que se verifico de forma manual.
 |---|---|---|
 | Adriel S. Chaves Salazar | 2021031465 | Si, detallado abajo |
 | Daniel Duarte Cordero | 2022012866 | Pendiente de completar |
-| Sebastian Hernandez Bonilla | 2022093651 | Pendiente de completar |
+| Sebastian Hernandez Bonilla | 2022093651 | Si, Etapas A y C, detallado abajo |
 
 Cada integrante completa su propia seccion. Un apartado vacio significa que
 ese integrante todavia no ha declarado su uso, no que no lo haya habido.
@@ -22,6 +22,7 @@ ese integrante todavia no ha declarado su uso, no que no lo haya habido.
 | Herramienta | Integrante | Periodo |
 |---|---|---|
 | Claude (Anthropic), interfaz web | Adriel S. Chaves Salazar | Semanas 8 a 10 |
+| Claude Code (Anthropic), agente de programacion | Sebastian Hernandez Bonilla | Etapas A y C |
 
 ## Adriel S. Chaves Salazar
 
@@ -175,7 +176,8 @@ tercero la construccion de aquello que constituye el objeto de aprendizaje:
   repositorio. El programa no realiza ninguna llamada de red.
 
 Las unicas bibliotecas externas son NumPy y pytest, que el enunciado permite
-de forma expresa.
+de forma expresa. En la Etapa C se agrego matplotlib, tambien permitida, solo
+para las graficas de la experimentacion.
 
 Todo componente presente en la entrega puede ser explicado y fundamentado por
 el estudiante.
@@ -186,10 +188,45 @@ Pendiente de completar por el integrante.
 
 ## Sebastian Hernandez Bonilla
 
-Pendiente de completar por el integrante.
+### En que partes se uso
+
+| Componente | Grado de uso | Detalle |
+|---|---|---|
+| Generador de instancias (Etapa A) | Alto | `src/instancias/generador_instancia.py`, `escritor_instancia.py`, subcomando `generar` y sus pruebas. |
+| Infraestructura experimental (Etapa C) | Alto | Guiones de `experimentos/`: runner, revalidacion, resumen, graficas y prueba de determinismo. |
+| Criterio de paro determinista de ambos agentes | Medio | Presupuestos de trabajo con el reloj como salvaguarda. No se cambio ningun otro componente de los algoritmos. |
+| Redaccion del analisis experimental | Alto | Secciones experimentales de `INFORME.md` y del README, redactadas a partir de los CSV formales. |
+
+### Como se uso
+
+La herramienta trabajo sobre el repositorio con instrucciones por etapas y
+puertas de control explicitas: debia detenerse y mostrar evidencia antes de
+cada decision relevante, y no podia modificar los agentes, el motor ni el
+validador sin aprobacion.
+
+### Decisiones y verificaciones del estudiante
+
+- Decidio las semillas pareadas (la misma `s` genera la instancia y se entrega
+  al agente), el uso de `rho = M / N^2`, las seis configuraciones de la
+  comparacion, la rejilla de escalabilidad y el limite `T = 10 s`, a partir de
+  la evidencia del piloto.
+- Exigio que `resolver` no escribiera por defecto en un CSV global.
+- Al aparecer una solucion distinta de A* con entradas identicas, detuvo las
+  baterias, descarto los resultados obtenidos hasta entonces como formales y
+  exigio una correccion general del criterio de paro, con evidencia antes de
+  cualquier cambio de codigo.
+- Aprobo los valores de los presupuestos (2200 y 20000) segun la regla de
+  calibracion propuesta, y fijo como condicion de validez `clock_safeguard =
+  False` en todas las corridas formales.
+- Reviso en cada fase la evidencia reportada (hashes, estados, revalidacion) e
+  hizo los commits manualmente.
+
+La redaccion de esta seccion la propuso la herramienta y queda sujeta a la
+revision del integrante.
 
 ## Historial de este documento
 
 | Fecha | Cambio |
 |---|---|
 | Semana 10 | Version inicial, con la declaracion de Adriel S. Chaves Salazar. |
+| 2026-09-30 | Declaracion de Sebastian Hernandez Bonilla para las Etapas A y C. |

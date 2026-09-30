@@ -12,16 +12,13 @@ Inteligencia Artificial (IC-6200) - Instituto Tecnologico de Costa Rica
 | Motor y validador | 12 | Completo |
 | Agente de busqueda | 16 | Completo |
 | Generador de instancias (Etapa A) | - | Completo |
-| Agente evolutivo | 16 | No iniciado |
-| Comparacion experimental | 14 | No iniciado |
-| Escalabilidad (grupo de 3) | 12 | No iniciado |
-| README e informe | 12 | README completo; informe no iniciado |
+| Agente evolutivo | 16 | Implementado; falta el CSV de calibracion de parametros |
+| Comparacion experimental | 14 | Completo (Etapa C) |
+| Escalabilidad (grupo de 3) | 12 | Completo (Etapa C) |
+| README e informe | 12 | README completo; `INFORME.md` con la parte experimental; faltan las formulaciones (Etapa D) |
 | Reproducibilidad | 8 | Completo |
-| Repositorio y autoria | 5 | Solo un autor con commits |
+| Repositorio y autoria | 5 | Commits de los tres integrantes; falta la declaracion de IA de Daniel |
 | Video y entrega | 5 | No iniciado |
-
-Asegurados 36 de 100. Faltan 42 del bloque tecnico y 22 del de
-profesionalidad.
 
 ## Lo que ya quedo resuelto
 
@@ -30,8 +27,9 @@ Los pendientes de infraestructura estan cerrados y verificados en frio:
 - `setup.ps1` prepara el entorno, instala dependencias, corre las pruebas,
   resuelve la instancia de ejemplo y la valida, todo en una orden. Cubre el
   criterio de aceptacion 1.
-- `validar_lote.ps1` valida todas las soluciones del repositorio contra sus
-  instancias y reporta aceptadas y rechazadas.
+- `python -m experimentos.revalidar <bateria>` vuelve a validar todas las
+  soluciones de una bateria experimental contra sus instancias, sin ejecutar
+  los agentes, y reporta aceptadas y discrepancias.
 - La instancia `ciega_n5_k4_m15.txt` se resolvio y valido sin haberse usado
   durante el desarrollo. Cubre el criterio de aceptacion 2.
 - Un archivo de instancia mal formado produce un mensaje legible y codigo de
@@ -74,8 +72,8 @@ producen el mismo archivo byte a byte.
 - `src/instancias/escritor_instancia.py` escribe el formato oficial, con los
   parametros anotados en la cabecera y salto de linea `\n` fijo.
 - `src/cli/comandos/comando_generar.py` expone el subcomando `generar`.
-- Queda pendiente solo para la Etapa C decidir el conjunto concreto de
-  configuraciones y semillas, y guardar esas instancias en `datos/instancias/`.
+- Las instancias de las baterias experimentales se generaron con el en la
+  Etapa C y estan en `datos/instancias/`.
 
 ---
 
@@ -99,9 +97,16 @@ aptitud debe simular una partida, no explorar sucesores.
 soluciones que el validador acepta, es determinista por semilla, y existe el
 CSV de calibracion de parametros.
 
+**Como esta.** Implementado y validado en todas las baterias. Durante la Etapa
+C su criterio de paro paso de reloj a presupuesto determinista de evaluaciones
+(ver README, *Criterio de paro y determinismo*). **Pendiente:** el CSV de
+calibracion de los pesos de aptitud, el tamano de poblacion y la probabilidad
+de cruce. El runner `experimentos/bateria.py` puede reutilizarse para ese
+barrido.
+
 ---
 
-## Etapa C - Experimentacion
+## Etapa C - Experimentacion  [COMPLETA]
 
 **Que es.** Correr ambos agentes sobre todas las instancias generadas y
 acumular los resultados. Son dos baterias distintas:
@@ -114,8 +119,15 @@ acumular los resultados. Son dos baterias distintas:
 **Lo que se olvida.** Los resultados van con su dispersion entre semillas, no
 como un numero unico. Una tabla con un solo valor por celda baja a Bueno.
 
-**Cuando esta listo.** Los CSV estan llenos, la grafica existe, y
-`validar_lote.ps1` acepta todas las soluciones producidas.
+**Cuando esta listo.** Los CSV estan llenos, la grafica existe, y la
+revalidacion acepta todas las soluciones producidas.
+
+**Como quedo.** Comparacion con 36 corridas y escalabilidad con 54, todas ok,
+validadas y con `clock_safeguard = False`. Revalidacion 36/36 y 54/54.
+Resumenes, graficas e interpretacion en `INFORME.md`; comandos y estructura en
+el README, seccion *Experimentacion*. En el camino se detecto que el paro por
+reloj rompia el determinismo de A* entre sesiones; se corrigio con presupuestos
+de trabajo deterministas y las baterias se repitieron desde cero.
 
 ---
 
@@ -123,6 +135,12 @@ como un numero unico. Una tabla con un solo valor por celda baja a Bueno.
 
 **Que es.** `INFORME.md` con la formulacion de ambos agentes y la lectura de
 los experimentos.
+
+**Como esta.** `INFORME.md` ya contiene la metodologia, la comparacion y la
+escalabilidad con su interpretacion. **Pendiente:** agregar la formulacion de
+A* (estado, operadores, costo, meta, heuristica y admisibilidad) y la del
+evolutivo (representacion, aptitud, seleccion, variacion, reemplazo, paro y
+procedimiento de fijacion de parametros).
 
 **Lo que no es.** Una tabla de numeros. El enunciado pide interpretacion: que
 parametro domina el costo, en que punto A* deja de terminar dentro del limite,
@@ -155,6 +173,10 @@ situacion que el enunciado dice que agrava.
 **Reparto natural.** Las etapas A, B y C son tres piezas separables. Una por
 persona.
 
+**Como esta.** Los tres integrantes tienen commits. **Pendiente:** que Daniel
+complete su seccion en `DECLARACION_IA.md`, y que Sebastian revise la suya,
+redactada como borrador para las Etapas A y C.
+
 ---
 
 ## Etapa F - Entrega
@@ -176,5 +198,6 @@ git clone <url>
 cd tileup-search-evolutionary
 powershell -ExecutionPolicy Bypass -File setup.ps1
 .venv\Scripts\python.exe main.py resolver --instancia <instancia> --agentes busqueda_astar evolutivo --semilla 7 --limite-tiempo 10
-powershell -ExecutionPolicy Bypass -File validar_lote.ps1
+.venv\Scripts\python.exe main.py validar --instancia <instancia> --solucion <solucion de cada agente>
+.venv\Scripts\python.exe -m experimentos.revalidar comparacion
 ```

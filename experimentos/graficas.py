@@ -266,7 +266,7 @@ def _figura_escalabilidad(filas, directorio, factor, fijo, nombre_archivo) -> st
                    COLORES_SERIE[indice],
                    ("A* " if agente == AGENTE_BUSQUEDA else "Evo ") + fijo + "=" + str(nivel),
                    estilo)
-    eje.set_title("Celdas ocupadas al terminar (A* continua, evolutivo discontinua)")
+    eje.set_title("Celdas ocupadas (A* continua, Evo discontinua)")
     eje.set_ylabel("Celdas")
     eje.set_xlabel(factor)
     eje.legend(fontsize=7, ncol=2)

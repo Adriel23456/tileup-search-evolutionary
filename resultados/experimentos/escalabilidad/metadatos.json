@@ -1,0 +1,87 @@
+{
+  "experiment": "escalabilidad",
+  "configuracion": "experimentos/configuracion/escalabilidad.json",
+  "sha256_configuracion": "261dccd8c9c3ca824c3f6bc91835232ccd686eeb8132e194ee9111a98884d699",
+  "sha256_guiones": {
+    "experimentos/bateria.py": "59d9f6a3113947d259a461dc34ee75f548efbf3834c8efeceefce1144ab833f4",
+    "experimentos/corrida.py": "01de0757dec2a4085ab5abbedcfd1663dee31ea0d01a7b3dcb28fc827f7d2fae",
+    "experimentos/registro.py": "140c3d44d82f08b371aea9ae6d7f59a997967e44a5d76caf4f946de2cdede38a"
+  },
+  "agentes": [
+    "busqueda_astar",
+    "evolutivo"
+  ],
+  "semillas_pareadas": [
+    1,
+    2,
+    3
+  ],
+  "timeout_s": 10.0,
+  "configuraciones": [
+    {
+      "N": 3,
+      "K": 2,
+      "M": 5,
+      "rho": 0.5
+    },
+    {
+      "N": 3,
+      "K": 3,
+      "M": 5,
+      "rho": 0.5
+    },
+    {
+      "N": 3,
+      "K": 4,
+      "M": 5,
+      "rho": 0.5
+    },
+    {
+      "N": 4,
+      "K": 2,
+      "M": 8,
+      "rho": 0.5
+    },
+    {
+      "N": 4,
+      "K": 3,
+      "M": 8,
+      "rho": 0.5
+    },
+    {
+      "N": 4,
+      "K": 4,
+      "M": 8,
+      "rho": 0.5
+    },
+    {
+      "N": 5,
+      "K": 2,
+      "M": 13,
+      "rho": 0.5
+    },
+    {
+      "N": 5,
+      "K": 3,
+      "M": 13,
+      "rho": 0.5
+    },
+    {
+      "N": 5,
+      "K": 4,
+      "M": 13,
+      "rho": 0.5
+    }
+  ],
+  "entorno": {
+    "commit": "f0be0f8afa71aaf06f7392e52ae3d21fd63013e5",
+    "cambios_sin_confirmar": true,
+    "python": "3.14.7",
+    "plataforma": "Windows-11-10.0.26200-SP0",
+    "procesador": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",
+    "nucleos_logicos": 32,
+    "fecha": "2026-09-30T15:01:43"
+  },
+  "inicio": "2026-09-30T15:01:43",
+  "fin": "2026-09-30T15:04:20"
+}
