@@ -1,0 +1,9 @@
+# TileUp -- instancia generada
+# generador: n=3 k=2 m=5 semilla=3
+3 2
+5
+1 6
+1 1
+2 5
+1 4
+2 9

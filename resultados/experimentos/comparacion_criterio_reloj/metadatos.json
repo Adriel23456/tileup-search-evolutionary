@@ -1,0 +1,69 @@
+{
+  "experiment": "comparacion",
+  "configuracion": "experimentos/configuracion/comparacion.json",
+  "sha256_configuracion": "384ef5065d0994bc734b87c9854f70f2462694e385e9eaa02f1a3971b1cfae29",
+  "sha256_guiones": {
+    "experimentos/bateria.py": "fdb3f550f9076aacc136c6ed7b85cec3b13c82621ef0244ed1ac5942e9a2059c",
+    "experimentos/corrida.py": "e68ffb09f54bcdb7e3c51d77aac28774e4c82d94bcab094470cef1c2279e9416",
+    "experimentos/registro.py": "140c3d44d82f08b371aea9ae6d7f59a997967e44a5d76caf4f946de2cdede38a"
+  },
+  "agentes": [
+    "busqueda_astar",
+    "evolutivo"
+  ],
+  "semillas_pareadas": [
+    1,
+    2,
+    3
+  ],
+  "timeout_s": 10.0,
+  "configuraciones": [
+    {
+      "N": 3,
+      "K": 4,
+      "M": 14,
+      "rho": 1.5556
+    },
+    {
+      "N": 4,
+      "K": 4,
+      "M": 8,
+      "rho": 0.5
+    },
+    {
+      "N": 4,
+      "K": 2,
+      "M": 16,
+      "rho": 1.0
+    },
+    {
+      "N": 5,
+      "K": 2,
+      "M": 13,
+      "rho": 0.52
+    },
+    {
+      "N": 5,
+      "K": 4,
+      "M": 25,
+      "rho": 1.0
+    },
+    {
+      "N": 6,
+      "K": 4,
+      "M": 36,
+      "rho": 1.0
+    }
+  ],
+  "entorno": {
+    "commit": "f1351e6a3954cacf40de0fed6f918cba6947ef23",
+    "cambios_sin_confirmar": true,
+    "python": "3.14.7",
+    "plataforma": "Windows-11-10.0.26200-SP0",
+    "procesador": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",
+    "nucleos_logicos": 32,
+    "fecha": "2026-09-30T14:25:36"
+  },
+  "inicio": "2026-09-30T14:25:36",
+  "fin": "2026-09-30T14:30:38"
+}

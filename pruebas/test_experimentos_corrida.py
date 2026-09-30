@@ -28,7 +28,7 @@ RUTA_BITACORA_HISTORICA = os.path.join(
 )
 
 SALIDA_BUSQUEDA_CORTADA = (
-    "Nota: la busqueda se corto por tiempo o por nodos; la solucion se "
+    "Nota: la busqueda se corto antes de alcanzar la meta; la solucion se "
     "completo con la politica avida.\n"
     "agente=busqueda_astar instancia=ejemplo_n5_k3_m12 semilla=1 "
     "resultado=victoria colocadas=12/12 ocupadas=6 mayor=11 tiempo_s=8.5123 "
@@ -80,6 +80,7 @@ def test_interpreta_la_salida_de_la_busqueda_cortada():
     assert metricas.esfuerzo == 68428
     assert metricas.nombre_esfuerzo == "nodos_expandidos"
     assert metricas.corte_busqueda is True
+    assert metricas.corte_por_reloj is False
     assert metricas.ruta_solucion == "C:\\x\\ejemplo.sol"
 
 
@@ -90,6 +91,18 @@ def test_interpreta_la_salida_del_evolutivo():
     assert metricas.nombre_esfuerzo == "evaluaciones_aptitud"
     assert metricas.esfuerzo == 29619
     assert metricas.corte_busqueda is False
+    assert metricas.corte_por_reloj is False
+
+
+def test_se_detecta_el_aviso_de_la_salvaguarda_del_reloj():
+    """El aviso de la salvaguarda queda registrado como corte por reloj."""
+    salida_con_aviso = (
+        "Advertencia: el reloj de salvaguarda detuvo al agente antes de "
+        "agotar su presupuesto; la solucion puede depender de la velocidad "
+        "de la maquina.\n" + SALIDA_EVOLUTIVO
+    )
+
+    assert corrida.interpretar_resolver(salida_con_aviso).corte_por_reloj is True
 
 
 def test_una_salida_sin_metricas_no_se_interpreta():
@@ -206,6 +219,7 @@ def test_una_corrida_real_queda_validada_y_registrada(
     assert int(fila["effort"]) > 0
     assert fila["search_cutoff"] == corte_esperado
     assert fila["exceeded_limit"] == "False"
+    assert fila["clock_safeguard"] == "False"
     assert fila["instance_seed"] == ""
     assert len(fila["solution_sha256"]) == 64
     assert detalle["validar"]["codigo"] == 0

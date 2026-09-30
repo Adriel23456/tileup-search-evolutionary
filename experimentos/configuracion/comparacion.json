@@ -1,7 +1,7 @@
 {
   "experiment": "comparacion",
   "descripcion": "Comparacion experimental formal exigida por el enunciado: ambos agentes sobre el mismo conjunto de instancias, seis configuraciones distintas de N, K y M, tres semillas por configuracion.",
-  "origen_de_las_configuraciones": "Elegidas a partir del piloto (experimentos/configuracion/piloto.json, resultados/experimentos/piloto/crudo.csv) para cubrir los regimenes observados de A*: alcanza la meta en la busqueda con holgura (n3_k4_m14, n4_k4_m8), deja de alcanzarla por reloj y recurre al completado (n4_k2_m16, n5_k2_m13), y agota el tope de 120000 nodos del agente antes que el reloj (n5_k4_m25, n6_k4_m36). Es una decision experimental nuestra, no una lista del enunciado.",
+  "origen_de_las_configuraciones": "Elegidas a partir del piloto (experimentos/configuracion/piloto.json, resultados/experimentos/piloto/crudo.csv) para cubrir los regimenes de A*: alcanza la meta antes de agotar su presupuesto determinista de nodos (n3_k4_m14, n4_k4_m8), y agota el presupuesto sin alcanzar la meta y recurre al completado (n4_k2_m16, n5_k2_m13, n5_k4_m25, n6_k4_m36), en tableros y con cantidades de fichas crecientes. El piloto se hizo con el criterio de paro anterior (reloj); el presupuesto de 2200 nodos por segundo de T se fijo para no cortar ninguna meta observada, de modo que la frontera entre ambas regiones se conserva. Es una decision experimental nuestra, no una lista del enunciado.",
   "timeout_s": 10,
   "nota_timeout": "Limite comun a todas las corridas formales, fijado despues del piloto.",
   "agentes": ["busqueda_astar", "evolutivo"],

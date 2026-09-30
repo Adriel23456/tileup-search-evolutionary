@@ -60,6 +60,7 @@ COLUMNAS_CRUDO = [
     "result",
     "complete",
     "search_cutoff",
+    "clock_safeguard",
     "time_fraction",
     "exceeded_limit",
     "wall_s",
@@ -106,8 +107,13 @@ PATRON_METRICAS = re.compile(
 )
 
 # Aviso que imprime el agente de busqueda cuando se detiene sin llegar a la
-# meta, por tiempo o por nodos, y completa la partida de forma avida.
+# meta y completa la partida de forma avida.
 PREFIJO_NOTA_CORTE = "Nota: la busqueda se corto"
+
+# Aviso que imprime cualquier agente cuando el reloj de salvaguarda lo detuvo
+# antes de agotar su presupuesto determinista. Sin este aviso, la corrida quedo
+# determinada por su entrada.
+PREFIJO_SALVAGUARDA = "Advertencia: el reloj de salvaguarda"
 
 PREFIJO_SOLUCION = "solucion="
 
@@ -151,6 +157,7 @@ class MetricasAgente:
     esfuerzo: int
     nombre_esfuerzo: str
     corte_busqueda: bool
+    corte_por_reloj: bool
     ruta_solucion: Optional[str]
 
 
@@ -212,6 +219,7 @@ def interpretar_resolver(stdout: str) -> Optional[MetricasAgente]:
     """Extrae las metricas de la salida de resolver, o None si no aparecen."""
     coincidencia = None
     corte_busqueda = False
+    corte_por_reloj = False
     ruta_solucion = None
 
     for linea in stdout.splitlines():
@@ -219,6 +227,8 @@ def interpretar_resolver(stdout: str) -> Optional[MetricasAgente]:
 
         if linea.startswith(PREFIJO_NOTA_CORTE):
             corte_busqueda = True
+        elif linea.startswith(PREFIJO_SALVAGUARDA):
+            corte_por_reloj = True
         elif linea.startswith(PREFIJO_SOLUCION):
             ruta_solucion = linea[len(PREFIJO_SOLUCION):]
         elif PATRON_METRICAS.match(linea):
@@ -237,6 +247,7 @@ def interpretar_resolver(stdout: str) -> Optional[MetricasAgente]:
         esfuerzo=int(coincidencia.group("esfuerzo")),
         nombre_esfuerzo=coincidencia.group("nombre_esfuerzo"),
         corte_busqueda=corte_busqueda,
+        corte_por_reloj=corte_por_reloj,
         ruta_solucion=ruta_solucion,
     )
 
@@ -426,6 +437,7 @@ def ejecutar_corrida(experimento: str, config_id: str, ruta_instancia: str,
         "result": "",
         "complete": "",
         "search_cutoff": "",
+        "clock_safeguard": "",
         "time_fraction": "",
         "exceeded_limit": "",
         "wall_s": _decimal(salida_resolver.segundos_reloj),
@@ -454,6 +466,7 @@ def ejecutar_corrida(experimento: str, config_id: str, ruta_instancia: str,
         fila["effort_type"] = tipo_esfuerzo
         fila["result"] = metricas.resultado
         fila["complete"] = str(metricas.colocadas == m)
+        fila["clock_safeguard"] = str(metricas.corte_por_reloj)
         fila["time_fraction"] = _decimal(metricas.tiempo_s / timeout_s)
         fila["exceeded_limit"] = str(metricas.tiempo_s > timeout_s)
 

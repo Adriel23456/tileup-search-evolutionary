@@ -57,9 +57,16 @@ enunciado exige que, alcanzado el limite, el agente entregue la mejor
 solucion encontrada hasta ese momento. Por eso el agente recuerda el mejor
 estado visto y, si la busqueda se corta, completa la partida colocando cada
 ficha restante en la celda de menor costo inmediato.
+
+La busqueda se corta por un presupuesto de nodos que depende solo del limite
+de tiempo recibido, no por el reloj. Asi la misma entrada expande siempre los
+mismos nodos y entrega la misma solucion, como exige el enunciado. El reloj se
+conserva unicamente como salvaguarda del limite obligatorio: si llegara a
+actuar antes que el presupuesto, el agente lo indica en corto_por_reloj.
 """
 
 import heapq
+import math
 import time
 from typing import Dict, List, Optional, Tuple
 
@@ -76,6 +83,29 @@ LIMITE_NODOS_POR_DEFECTO = 120000
 # Fraccion del limite de tiempo que se reserva para completar la partida de
 # forma avida cuando la busqueda no alcanzo la meta.
 FRACCION_MARGEN_COMPLETADO = 0.15
+
+# Nodos expandibles por cada segundo del limite de tiempo. Fija el presupuesto
+# determinista de la busqueda. Se calibro con las corridas registradas: debe
+# ser al menos 1991 para no cortar ninguna meta observada con T = 10 s (la mas
+# costosa necesito 19912 nodos) y a lo sumo 2369 para agotarse antes que el
+# reloj con margen 1.5 en el caso mas lento observado (4181 nodos/s durante el
+# 85 % de T). Ver README, seccion del criterio de paro.
+NODOS_POR_SEGUNDO_DE_LIMITE = 2200
+
+
+def presupuesto_de_nodos(limite_tiempo_segundos: float,
+                         limite_nodos: int = LIMITE_NODOS_POR_DEFECTO) -> int:
+    """
+    Presupuesto determinista de nodos para un limite de tiempo dado.
+
+    min(limite_nodos, floor(NODOS_POR_SEGUNDO_DE_LIMITE * T)). Depende solo de
+    las entradas, de modo que dos ejecuciones iguales expanden lo mismo.
+    """
+    return min(
+        limite_nodos,
+        int(math.floor(NODOS_POR_SEGUNDO_DE_LIMITE * limite_tiempo_segundos)),
+    )
+
 
 class AgenteBusquedaAEstrella(Agente):
     """Resuelve una instancia de TileUp con busqueda informada A*."""
@@ -108,10 +138,15 @@ class AgenteBusquedaAEstrella(Agente):
         self._nodos_expandidos = 0
 
         # Indica si la ultima planificacion alcanzo la meta por busqueda o si
-        # se corto por tiempo o por nodos y termino con la politica avida. Es
+        # se corto antes de la meta y termino con la politica avida. Es
         # el dato que permite reportar en el informe en que punto A* deja de
         # resolver dentro del limite.
         self._alcanzo_la_meta = False
+
+        # Indica si la ultima planificacion la detuvo el reloj de salvaguarda
+        # antes de agotar el presupuesto. Solo mientras sea False la solucion
+        # queda determinada por la entrada.
+        self._corto_por_reloj = False
 
     # ------------------------------------------------------------------
     # Identificacion
@@ -138,6 +173,11 @@ class AgenteBusquedaAEstrella(Agente):
         """Indica si la ultima planificacion termino por busqueda completa."""
         return self._alcanzo_la_meta
 
+    @property
+    def corto_por_reloj(self) -> bool:
+        """Indica si el reloj de salvaguarda actuo antes que el presupuesto."""
+        return self._corto_por_reloj
+
     def esfuerzo_acumulado(self) -> int:
         """Devuelve cuantos nodos se expandieron en la ultima planificacion."""
         return self._nodos_expandidos
@@ -160,11 +200,15 @@ class AgenteBusquedaAEstrella(Agente):
         """
         self._nodos_expandidos = 0
         self._alcanzo_la_meta = False
+        self._corto_por_reloj = False
 
-        # El completado avido ocurre despues de que la busqueda se detiene y
-        # tambien consume tiempo. Se le reserva una fraccion del presupuesto
-        # para que el total nunca exceda el limite que recibio el agente: un
-        # agente que se pasa del limite queda fuera del concurso.
+        presupuesto = presupuesto_de_nodos(limite_tiempo_segundos, self._limite_nodos)
+
+        # El reloj ya no decide cuando parar: es solo la salvaguarda del limite
+        # obligatorio. El completado avido ocurre despues de que la busqueda se
+        # detiene y tambien consume tiempo, asi que la salvaguarda le reserva
+        # una fraccion del limite para que el total nunca lo exceda: un agente
+        # que se pasa del limite queda fuera del concurso.
         margen_para_completar = limite_tiempo_segundos * FRACCION_MARGEN_COMPLETADO
         instante_limite = (
             time.perf_counter() + limite_tiempo_segundos - margen_para_completar
@@ -190,10 +234,11 @@ class AgenteBusquedaAEstrella(Agente):
         clave_mejor = clave_raiz
 
         while len(lista_abierta) > 0:
-            if time.perf_counter() >= instante_limite:
+            if self._nodos_expandidos >= presupuesto:
                 break
 
-            if self._nodos_expandidos >= self._limite_nodos:
+            if time.perf_counter() >= instante_limite:
+                self._corto_por_reloj = True
                 break
 
             valor_f, valor_h, orden, clave_actual = heapq.heappop(lista_abierta)

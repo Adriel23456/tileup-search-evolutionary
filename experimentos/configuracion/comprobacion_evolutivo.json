@@ -1,0 +1,36 @@
+{
+  "experiment": "comprobacion_evolutivo",
+  "descripcion": "Comprobacion sencilla, no de ajuste: el evolutivo con el presupuesto determinista de evaluaciones sobre las 24 instancias del piloto. Verifica que siga produciendo soluciones legales y completas, y permite comparar sus celdas ocupadas con las del piloto, obtenido con el criterio anterior (paro solo por reloj). No se usa para reajustar COLOCACIONES_POR_SEGUNDO_DE_LIMITE.",
+  "instancias": [
+    "datos/instancias/piloto_s1_n3_k2_m5.txt",
+    "datos/instancias/piloto_s1_n3_k2_m9.txt",
+    "datos/instancias/piloto_s1_n3_k2_m14.txt",
+    "datos/instancias/piloto_s1_n3_k4_m5.txt",
+    "datos/instancias/piloto_s1_n3_k4_m9.txt",
+    "datos/instancias/piloto_s1_n3_k4_m14.txt",
+    "datos/instancias/piloto_s1_n4_k2_m8.txt",
+    "datos/instancias/piloto_s1_n4_k2_m16.txt",
+    "datos/instancias/piloto_s1_n4_k2_m24.txt",
+    "datos/instancias/piloto_s1_n4_k4_m8.txt",
+    "datos/instancias/piloto_s1_n4_k4_m16.txt",
+    "datos/instancias/piloto_s1_n4_k4_m24.txt",
+    "datos/instancias/piloto_s1_n5_k2_m13.txt",
+    "datos/instancias/piloto_s1_n5_k2_m25.txt",
+    "datos/instancias/piloto_s1_n5_k2_m38.txt",
+    "datos/instancias/piloto_s1_n5_k4_m13.txt",
+    "datos/instancias/piloto_s1_n5_k4_m25.txt",
+    "datos/instancias/piloto_s1_n5_k4_m38.txt",
+    "datos/instancias/piloto_s1_n6_k2_m18.txt",
+    "datos/instancias/piloto_s1_n6_k2_m36.txt",
+    "datos/instancias/piloto_s1_n6_k2_m54.txt",
+    "datos/instancias/piloto_s1_n6_k4_m18.txt",
+    "datos/instancias/piloto_s1_n6_k4_m36.txt",
+    "datos/instancias/piloto_s1_n6_k4_m54.txt"
+  ],
+  "agentes": [
+    "evolutivo"
+  ],
+  "semilla_agente": 1,
+  "timeout_s": 10,
+  "repeticiones": 1
+}

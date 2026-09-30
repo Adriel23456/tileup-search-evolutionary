@@ -1,0 +1,9 @@
+instance,agent,agent_seed,timeout_s,runs,n_ok,distinct_solutions,identical_solutions,solution_sha256,tiles_placed_values,occupied_cells_values,largest_tile_values,search_cutoff_values,clock_safeguard_values,effort_type,effort_min,effort_max,effort_range_pct,elapsed_min_s,elapsed_max_s,statuses
+ejemplo_n4_k3_m6,busqueda_astar,1,10.000000,5,5,1,True,bbc13b181996aca6b650ab3e0c6ce184d1b7ff625a9a1766400a903286857e46,6,3,6,False,False,expanded_nodes,502,502,0.00,0.0447,0.0486,ok
+ejemplo_n4_k3_m6,evolutivo,1,10.000000,5,5,1,True,fd6efcd556be976d3042ab3b170fdf9519bdcb18568c2c03eacfb00450f490cf,6,3,6,,False,fitness_evaluations,33333,33333,0.00,3.4429,3.5415,ok
+ejemplo_n5_k3_m12,busqueda_astar,1,10.000000,5,5,1,True,398eb0298b53bcaf31682a9975d7bb7a31618dc6e7b13c156a8124d35dab9c5c,12,6,11,True,False,expanded_nodes,22000,22000,0.00,3.3261,3.3730,ok
+ejemplo_n5_k3_m12,evolutivo,1,10.000000,5,5,1,True,d0c0391cdb8dbb5e06dd0d194980171c30704463cc01e87367b74e663b9ac499,12,3,12,,False,fitness_evaluations,16666,16666,0.00,3.4729,3.5604,ok
+ciega_n5_k4_m15,busqueda_astar,1,10.000000,5,5,1,True,7689d2cb7e05522197e1d43b8b4c90553216efd2a19af95af5fb8a0436ddcf99,15,10,8,True,False,expanded_nodes,22000,22000,0.00,2.5317,2.5994,ok
+ciega_n5_k4_m15,evolutivo,1,10.000000,5,5,1,True,d56e1226949471bbbdd809eddb78cd9dbc712c7bfaa31602d580c39d0da11329,15,4,11,,False,fitness_evaluations,13333,13333,0.00,3.1329,3.1903,ok
+ejemplo_n6_k4_m24,busqueda_astar,1,10.000000,5,5,1,True,59c7a6e0af6c3700da49cb7901a661f11346fdf9ab04b065379cc56422054990,24,18,11,True,False,expanded_nodes,22000,22000,0.00,2.9965,3.1684,ok
+ejemplo_n6_k4_m24,evolutivo,1,10.000000,5,5,1,True,bd0f1c11804d552281f48e7032a1b1cd030f509bd79f317bdfa76bdc96335f11,24,4,18,,False,fitness_evaluations,8333,8333,0.00,3.1156,3.2955,ok

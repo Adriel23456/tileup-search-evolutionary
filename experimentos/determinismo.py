@@ -61,6 +61,7 @@ COLUMNAS_INFORME = [
     "occupied_cells_values",
     "largest_tile_values",
     "search_cutoff_values",
+    "clock_safeguard_values",
     "effort_type",
     "effort_min",
     "effort_max",
@@ -89,6 +90,15 @@ def main(argumentos: Optional[List[str]] = None) -> int:
         ),
     )
     analizador.add_argument("--sobrescribir", action="store_true")
+    analizador.add_argument(
+        "--experimento",
+        default=None,
+        help=(
+            "Nombre de la carpeta de resultados, en lugar del de la "
+            "configuracion. Permite repetir la prueba en otra sesion sin "
+            "sobrescribir la anterior."
+        ),
+    )
     opciones = analizador.parse_args(argumentos)
 
     ruta_configuracion = os.path.join(corrida.RAIZ_REPOSITORIO, opciones.config)
@@ -105,9 +115,16 @@ def main(argumentos: Optional[List[str]] = None) -> int:
         limites = [configuracion["timeout_s"]]
         repeticiones = configuracion["repeticiones"]
 
+    if opciones.experimento is not None:
+        experimento = opciones.experimento
+
     semilla = configuracion["semilla_agente"]
     agentes = configuracion["agentes"]
     directorio = os.path.join(DIRECTORIO_RESULTADOS, experimento)
+
+    # El entorno se captura antes de crear la carpeta de resultados: si no,
+    # git veria los propios archivos de esta corrida como cambios sin confirmar.
+    entorno = metadatos_del_entorno()
 
     try:
         registro = RegistroExperimento(directorio, COLUMNAS, opciones.sobrescribir)
@@ -124,7 +141,7 @@ def main(argumentos: Optional[List[str]] = None) -> int:
         "semilla_agente": semilla,
         "timeouts_s": limites,
         "repeticiones": repeticiones,
-        "entorno": metadatos_del_entorno(),
+        "entorno": entorno,
         "inicio": _ahora(),
     }
 
@@ -235,6 +252,7 @@ def construir_informe(filas: List[Dict[str, str]]) -> List[Dict[str, str]]:
             "occupied_cells_values": ";".join(_distintos(f["occupied_cells"] for f in grupo)),
             "largest_tile_values": ";".join(_distintos(f["largest_tile"] for f in grupo)),
             "search_cutoff_values": ";".join(_distintos(f["search_cutoff"] for f in grupo)),
+            "clock_safeguard_values": ";".join(_distintos(f.get("clock_safeguard", "") for f in grupo)),
             "effort_type": ";".join(_distintos(f["effort_type"] for f in grupo)),
             "effort_min": str(min(esfuerzos)) if esfuerzos else "",
             "effort_max": str(max(esfuerzos)) if esfuerzos else "",
@@ -257,6 +275,8 @@ def _reportar_puerta(informe: List[Dict[str, str]]) -> int:
 
     distintas = [g for g in informe if g["identical_solutions"] != "True"]
     con_fallos = [g for g in informe if g["statuses"] != "ok"]
+    esfuerzo_variable = [g for g in informe if g["effort_min"] != g["effort_max"]]
+    con_salvaguarda = [g for g in informe if "True" in g["clock_safeguard_values"]]
 
     print("")
     print("Prueba oficial: entradas identicas (instancia, agente, semilla, limite).")
@@ -267,9 +287,22 @@ def _reportar_puerta(informe: List[Dict[str, str]]) -> int:
             print("  - " + grupo["instance"] + " " + grupo["agent"]
                   + " statuses=" + grupo["statuses"])
 
-    if len(distintas) == 0 and len(con_fallos) == 0:
-        print("PUERTA SUPERADA: en todos los grupos las soluciones son identicas "
-              "y el validador las acepto sin discrepancias.")
+    if len(con_salvaguarda) > 0:
+        print("El reloj de salvaguarda actuo (clock_safeguard=True) en:")
+        for grupo in con_salvaguarda:
+            print("  - " + grupo["instance"] + " " + grupo["agent"])
+
+    if len(esfuerzo_variable) > 0:
+        print("Esfuerzo distinto entre repeticiones en:")
+        for grupo in esfuerzo_variable:
+            print("  - " + grupo["instance"] + " " + grupo["agent"] + " "
+                  + grupo["effort_min"] + "-" + grupo["effort_max"])
+
+    if (len(distintas) == 0 and len(con_fallos) == 0
+            and len(esfuerzo_variable) == 0 and len(con_salvaguarda) == 0):
+        print("PUERTA SUPERADA: en todos los grupos las soluciones y el esfuerzo "
+              "son identicos, el reloj de salvaguarda no actuo y el validador "
+              "acepto todo sin discrepancias.")
         return 0
 
     if len(distintas) > 0:
@@ -313,7 +346,7 @@ def _imprimir_tabla(informe: List[Dict[str, str]]) -> None:
     encabezado = (
         format("instancia", "<20") + format("agente", "<16") + format("T", ">5")
         + format("corridas", ">10") + format("ok", ">4") + format("solucs", ">8")
-        + format("ocupadas", ">10") + format("corte", ">7")
+        + format("ocupadas", ">10") + format("corte", ">7") + format("reloj", ">7")
         + format("esfuerzo min-max", ">20") + format("rango%", ">8")
         + format("tiempo min-max s", ">18")
     )
@@ -330,6 +363,7 @@ def _imprimir_tabla(informe: List[Dict[str, str]]) -> None:
             + format(grupo["distinct_solutions"], ">8")
             + format(grupo["occupied_cells_values"], ">10")
             + format(grupo["search_cutoff_values"] or "-", ">7")
+            + format(grupo["clock_safeguard_values"] or "-", ">7")
             + format(esfuerzo, ">20") + format(grupo["effort_range_pct"], ">8")
             + format(tiempo, ">18")
         )

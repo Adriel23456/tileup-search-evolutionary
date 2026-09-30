@@ -3,9 +3,16 @@
 Cada individuo es una secuencia de M coordenadas. Una reparación virtual
 permite contar conflictos posteriores sin modificar el cromosoma; únicamente
 los individuos con cero reparaciones pueden entregarse como solución.
+
+La evolución se detiene al agotar un presupuesto de evaluaciones que depende
+solo del límite de tiempo y de M, no del reloj: así la misma entrada y la misma
+semilla recorren siempre la misma trayectoria y entregan la misma solución. El
+reloj se conserva únicamente como salvaguarda del límite obligatorio; si llega
+a actuar antes que el presupuesto, el agente lo indica en corto_por_reloj.
 """
 
 from dataclasses import dataclass
+import math
 import random
 import time
 from typing import List, Optional, Sequence, Tuple
@@ -25,6 +32,30 @@ PESO_FICHAS_COLOCADAS = 100
 PESO_CELDAS_OCUPADAS = 10
 PESO_REPARACIONES = 25
 FRACCION_MARGEN_TIEMPO = 0.02
+
+# Colocaciones simuladas por cada segundo del límite de tiempo. Fija el
+# presupuesto determinista de evaluaciones: cada evaluación simula M
+# colocaciones, así que el presupuesto es floor(COLOCACIONES * T / M). Se
+# calibró con las corridas registradas, donde el caso más lento simuló 39042
+# colocaciones por segundo durante el 98 % de T; con margen 2 queda en unas
+# 19100 y se redondeó a 20000. Ver README, sección del criterio de paro.
+COLOCACIONES_POR_SEGUNDO_DE_LIMITE = 20000
+
+
+def presupuesto_de_evaluaciones(limite_tiempo_segundos: float,
+                                cantidad_fichas: int) -> int:
+    """
+    Presupuesto determinista de evaluaciones de aptitud.
+
+    floor(COLOCACIONES_POR_SEGUNDO_DE_LIMITE * T / M), y al menos 1 para que el
+    plan inicial siempre pueda evaluarse. Depende solo de las entradas.
+    """
+    if cantidad_fichas <= 0:
+        return 1
+
+    return max(1, int(math.floor(
+        COLOCACIONES_POR_SEGUNDO_DE_LIMITE * limite_tiempo_segundos / cantidad_fichas
+    )))
 
 
 @dataclass(frozen=True)
@@ -65,10 +96,16 @@ class AgenteEvolutivo(Agente):
         self._probabilidad_cruce = probabilidad_cruce
         self._motor = MotorTileUp()
         self._evaluaciones_aptitud = 0
+        self._corto_por_reloj = False
 
     @property
     def nombre(self) -> str:
         return "evolutivo"
+
+    @property
+    def corto_por_reloj(self) -> bool:
+        """Indica si el reloj de salvaguarda actuó antes que el presupuesto."""
+        return self._corto_por_reloj
 
     @property
     def nombre_medida_esfuerzo(self) -> str:
@@ -79,10 +116,17 @@ class AgenteEvolutivo(Agente):
 
     def planificar(self, estado_inicial: EstadoPartida,
                    limite_tiempo_segundos: float) -> List[Coordenada]:
-        """Evoluciona planes hasta el límite y devuelve el mejor plan legal."""
+        """Evoluciona planes hasta agotar el presupuesto y devuelve el mejor plan legal."""
         self._evaluaciones_aptitud = 0
+        self._corto_por_reloj = False
         self._generador = random.Random(self._semilla)
 
+        presupuesto = presupuesto_de_evaluaciones(
+            limite_tiempo_segundos, estado_inicial.instancia.cantidad_fichas
+        )
+
+        # El reloj ya no decide cuándo parar: es solo la salvaguarda del
+        # límite obligatorio.
         instante_inicio = time.perf_counter()
         margen = limite_tiempo_segundos * FRACCION_MARGEN_TIEMPO
         instante_limite = instante_inicio + limite_tiempo_segundos - margen
@@ -96,14 +140,17 @@ class AgenteEvolutivo(Agente):
         )
 
         if construccion_completa is False:
+            self._corto_por_reloj = True
             return colocaciones_base
 
         individuo_base = self._evaluar(estado_inicial, genes_base, ())
         poblacion: List[IndividuoEvaluado] = [individuo_base]
         mejor_valido = individuo_base
 
-        while len(poblacion) < self._tamano_poblacion:
+        while (len(poblacion) < self._tamano_poblacion
+               and self._evaluaciones_aptitud < presupuesto):
             if time.perf_counter() >= instante_limite:
+                self._corto_por_reloj = True
                 return list(mejor_valido.colocaciones_simuladas)
 
             genes, _, terminada = self._construir_genes_legales(
@@ -112,13 +159,19 @@ class AgenteEvolutivo(Agente):
             )
 
             if terminada is False:
+                self._corto_por_reloj = True
                 break
 
             individuo = self._evaluar(estado_inicial, genes, ())
             poblacion.append(individuo)
             mejor_valido = self._mejor_valido(mejor_valido, individuo)
 
-        while time.perf_counter() < instante_limite:
+        while (self._corto_por_reloj is False
+               and self._evaluaciones_aptitud < presupuesto):
+            if time.perf_counter() >= instante_limite:
+                self._corto_por_reloj = True
+                break
+
             padre_a = self._seleccionar_por_torneo(poblacion)
             padre_b = self._seleccionar_por_torneo(poblacion)
 

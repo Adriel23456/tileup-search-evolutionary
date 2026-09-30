@@ -111,6 +111,9 @@ def ejecutar_bateria(configuracion: Dict, ruta_configuracion: str,
     limite = float(configuracion["timeout_s"])
     configuraciones = expandir_configuraciones(configuracion)
 
+    # El entorno se captura antes de crear la carpeta de resultados: si no,
+    # git veria los propios archivos de esta corrida como cambios sin confirmar.
+    entorno = metadatos_del_entorno()
     registro = RegistroExperimento(directorio_resultados, COLUMNAS, sobrescribir)
 
     metadatos = {
@@ -127,7 +130,7 @@ def ejecutar_bateria(configuracion: Dict, ruta_configuracion: str,
         "semillas_pareadas": semillas,
         "timeout_s": limite,
         "configuraciones": configuraciones,
-        "entorno": metadatos_del_entorno(),
+        "entorno": entorno,
         "inicio": _ahora(),
     }
 

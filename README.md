@@ -96,11 +96,18 @@ agente=busqueda_astar instancia=ejemplo_n4_k3_m6 semilla=0 resultado=victoria co
 solucion=D:\...\datos\soluciones\busqueda_astar\ejemplo_n4_k3_m6__busqueda_astar__s0.sol
 ```
 
-Cuando la busqueda no alcanza la meta dentro del limite, el agente entrega la
-mejor solucion encontrada y lo advierte por salida estandar:
+Cuando la busqueda agota su presupuesto sin alcanzar la meta, el agente entrega
+la mejor solucion encontrada y lo advierte por salida estandar:
 
 ```text
-Nota: la busqueda se corto por tiempo o por nodos; la solucion se completo con la politica avida.
+Nota: la busqueda se corto antes de alcanzar la meta; la solucion se completo con la politica avida.
+```
+
+Si el reloj de salvaguarda detiene a cualquier agente antes de que agote su
+presupuesto (ver *Criterio de paro y determinismo*), tambien se advierte:
+
+```text
+Advertencia: el reloj de salvaguarda detuvo al agente antes de agotar su presupuesto; la solucion puede depender de la velocidad de la maquina.
 ```
 
 Cada ejecucion escribe su archivo de solucion e informa sus metricas por salida
@@ -496,14 +503,15 @@ corregirlo.
 
 El espacio de estados crece como el producto de las celdas vacias a lo largo
 de la secuencia: para `N = 6` y `M = 24` el arbol tiene del orden de `36^24`
-nodos, de modo que A* solo termina en instancias pequenas. El agente aplica
-tres mecanismos:
+nodos, de modo que A* solo alcanza la meta en instancias pequenas. El agente
+aplica tres mecanismos:
 
-1. **Limite de tiempo.** Se comprueba en cada expansion. Se reserva una
-   fraccion del presupuesto para el completado avido, de modo que el tiempo
-   total nunca exceda el limite recibido.
-2. **Limite de nodos expandidos.** Acota la memoria, porque cada estado
-   visitado se conserva para poder reconstruir el camino.
+1. **Presupuesto determinista de nodos.** La busqueda se detiene al expandir
+   `min(120000, floor(2200 * T))` nodos, con `T` el limite de tiempo recibido:
+   22000 nodos para `T = 10 s`. El tope de 120000 solo acota la memoria.
+2. **Reloj de salvaguarda.** Se comprueba en cada expansion, al 85 % de `T`,
+   reservando el resto para el completado avido. No decide cuando parar: solo
+   protege el limite obligatorio si el presupuesto no alcanzara a agotarse.
 3. **Completado avido.** Si la busqueda se detiene sin alcanzar la meta, se
    toma el mejor estado visto y se termina la partida colocando cada ficha
    restante en la celda de menor costo inmediato. Asi el agente siempre
@@ -514,8 +522,10 @@ tres mecanismos:
 El agente no usa ninguna fuente de azar. Todos los desempates se resuelven por
 reglas fijas: en la lista abierta, menor `f`, luego menor `h`, luego orden de
 insercion; en el completado avido, menor costo, luego menor fila y columna.
-Dos ejecuciones sobre la misma instancia producen siempre la misma solucion,
-sin importar la semilla.
+Como la busqueda se detiene por un presupuesto que depende solo de la entrada,
+dos ejecuciones con la misma instancia y el mismo limite expanden los mismos
+nodos y producen la misma solucion, sin importar la semilla, siempre que el
+reloj de salvaguarda no intervenga. Ver *Criterio de paro y determinismo*.
 
 ## Agente evolutivo
 
@@ -565,11 +575,68 @@ guiado por fusiones para disponer inmediatamente de una solucion entregable;
 los restantes se construyen con elecciones legales aleatorias derivadas de la
 semilla.
 
-El agente crea y evalua hijos hasta agotar el limite de tiempo, reservando un
-margen pequeno para devolver la mejor solucion almacenada. La medida de
-esfuerzo es `evaluaciones_aptitud`: una clonacion que reutiliza una aptitud no
-incrementa este contador. Los pesos, el tamano de poblacion y la probabilidad
-de cruce son valores iniciales que deben calibrarse experimentalmente.
+El agente crea y evalua hijos hasta agotar un presupuesto determinista de
+`floor(20000 * T / M)` evaluaciones de aptitud, con `T` el limite de tiempo y
+`M` la cantidad de fichas (con `T = 10 s`: 40000 para `M = 5`, 25000 para
+`M = 8`, 8000 para `M = 25`). El presupuesto se aplica tanto en la
+inicializacion como en el bucle evolutivo. El reloj, al 98 % de `T`, queda solo
+como salvaguarda del limite obligatorio. La medida de esfuerzo es
+`evaluaciones_aptitud`: una clonacion que reutiliza una aptitud no incrementa
+este contador. Los pesos, el tamano de poblacion y la probabilidad de cruce
+son valores iniciales que deben calibrarse experimentalmente.
+
+## Criterio de paro y determinismo
+
+El enunciado exige a la vez que el agente respete el limite de tiempo y que la
+misma instancia, el mismo agente y la misma semilla produzcan la misma
+solucion. Si el reloj decide cuando parar, la cantidad de trabajo depende de la
+velocidad de la maquina en ese momento, y con ella la solucion. Esto se observo
+en la practica: A* sobre la misma instancia, con la misma semilla y
+`T = 10 s`, expandio 37176 nodos en una sesion y 55791 en otra, y entrego
+soluciones distintas (5 y 3 celdas ocupadas). La evidencia quedo en
+`resultados/experimentos/piloto/` y `resultados/experimentos/comparacion_criterio_reloj/`.
+
+Por eso ambos agentes se detienen por un **presupuesto de trabajo** que depende
+solo de su entrada, y el reloj queda **solo como salvaguarda** del limite
+obligatorio:
+
+| Agente | Presupuesto | Salvaguarda |
+|---|---|---|
+| `busqueda_astar` | `min(120000, floor(2200 * T))` nodos expandidos | 85 % de `T` |
+| `evolutivo` | `floor(20000 * T / M)` evaluaciones de aptitud | 98 % de `T` |
+
+Mientras la salvaguarda no actua, la misma entrada ejecuta exactamente el mismo
+trabajo y produce la misma solucion. Si llegara a actuar, por ejemplo en una
+maquina mucho mas lenta que la usada para calibrar, el agente lo avisa por
+salida estandar y la bateria experimental lo registra en la columna
+`clock_safeguard`. No se afirma un determinismo valido para cualquier maquina
+imaginable: lo que se demuestra es que, con estos presupuestos, las corridas
+evaluadas completan su trabajo antes de que la salvaguarda intervenga.
+
+**Como se fijaron las constantes.** Con las 186 corridas registradas con el
+criterio anterior, en la misma maquina y sin reajustarlas despues:
+
+- *A\*, 2200 nodos por segundo de `T`.* Debia cumplir dos condiciones. No
+  cortar ninguna meta observada con `T = 10 s`: la mas costosa necesito 19912
+  nodos, lo que exige al menos 1991. Y agotarse antes que el reloj con margen
+  1.5 en el caso mas lento observado, 4181 nodos por segundo durante el 85 % de
+  `T`, lo que permite a lo sumo 2369. Se eligio 2200, dentro de ese intervalo.
+- *Evolutivo, 20000 colocaciones simuladas por segundo de `T`.* Una evaluacion
+  simula `M` colocaciones, por eso el presupuesto se divide por `M`: medidas en
+  evaluaciones por segundo, las corridas variaron once veces entre instancias;
+  medidas en colocaciones simuladas por segundo, solo 2.3 veces. El caso mas
+  lento simulo 39042 colocaciones por segundo durante el 98 % de `T`; con
+  margen 2 quedan unas 19100, redondeadas a 20000.
+
+**Verificacion.** Con los presupuestos, la prueba de determinismo (4
+instancias, 2 agentes, 5 repeticiones, en dos sesiones separadas) dio en cada
+grupo un solo hash de solucion, el mismo esfuerzo, ninguna intervencion de la
+salvaguarda y ninguna discrepancia con el validador:
+
+```powershell
+python -m experimentos.determinismo --experimento determinismo_presupuesto_sesion1
+python -m experimentos.determinismo --experimento determinismo_presupuesto_sesion2
+```
 
 
 ## Decisiones de diseno

@@ -1,0 +1,25 @@
+{
+  "experiment": "comprobacion_evolutivo",
+  "fase": "oficial",
+  "configuracion": "experimentos/configuracion/comprobacion_evolutivo.json",
+  "sha256_configuracion": "25205d8de28dd7431bbae3f048ac869231942bfb8998928e0c7132fbd30ca304",
+  "agentes": [
+    "evolutivo"
+  ],
+  "semilla_agente": 1,
+  "timeouts_s": [
+    10
+  ],
+  "repeticiones": 1,
+  "entorno": {
+    "commit": "f1351e6a3954cacf40de0fed6f918cba6947ef23",
+    "cambios_sin_confirmar": true,
+    "python": "3.14.7",
+    "plataforma": "Windows-11-10.0.26200-SP0",
+    "procesador": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",
+    "nucleos_logicos": 32,
+    "fecha": "2026-09-30T14:51:17"
+  },
+  "inicio": "2026-09-30T14:51:17",
+  "fin": "2026-09-30T14:52:42"
+}

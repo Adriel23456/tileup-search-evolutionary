@@ -186,9 +186,18 @@ class EjecutorConsola:
         if hasattr(agente, "alcanzo_la_meta") is True:
             if agente.alcanzo_la_meta is False:
                 print(
-                    "Nota: la busqueda se corto por tiempo o por nodos; la "
+                    "Nota: la busqueda se corto antes de alcanzar la meta; la "
                     "solucion se completo con la politica avida."
                 )
+
+        # El presupuesto de trabajo solo garantiza el determinismo mientras
+        # el reloj de salvaguarda no intervenga. Si interviene, se avisa.
+        if getattr(agente, "corto_por_reloj", False) is True:
+            print(
+                "Advertencia: el reloj de salvaguarda detuvo al agente antes "
+                "de agotar su presupuesto; la solucion puede depender de la "
+                "velocidad de la maquina."
+            )
 
         print(resultado.metricas.como_linea_estandar())
         print("solucion=" + resultado.ruta_solucion)

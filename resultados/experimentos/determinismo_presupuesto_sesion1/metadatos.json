@@ -1,0 +1,26 @@
+{
+  "experiment": "determinismo_presupuesto_sesion1",
+  "fase": "oficial",
+  "configuracion": "experimentos/configuracion/determinismo.json",
+  "sha256_configuracion": "945c8c9352873d2e9125098921db7d31bdc12a88a65eb3fa6a7c54627311a332",
+  "agentes": [
+    "busqueda_astar",
+    "evolutivo"
+  ],
+  "semilla_agente": 1,
+  "timeouts_s": [
+    10
+  ],
+  "repeticiones": 5,
+  "entorno": {
+    "commit": "f1351e6a3954cacf40de0fed6f918cba6947ef23",
+    "cambios_sin_confirmar": true,
+    "python": "3.14.7",
+    "plataforma": "Windows-11-10.0.26200-SP0",
+    "procesador": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",
+    "nucleos_logicos": 32,
+    "fecha": "2026-09-30T14:48:57"
+  },
+  "inicio": "2026-09-30T14:48:57",
+  "fin": "2026-09-30T14:51:03"
+}
