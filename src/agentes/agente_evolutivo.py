@@ -25,7 +25,8 @@ from src.dominio.tablero import DESPLAZAMIENTOS_ORTOGONALES
 
 Coordenada = Tuple[int, int]
 
-TAMANO_POBLACION_POR_DEFECTO = 30
+# Parámetros fijos de diseño para las baterías incluidas en esta entrega.
+TAMANO_POBLACION_POR_DEFECTO = 20
 TAMANO_TORNEO_POR_DEFECTO = 3
 PROBABILIDAD_CRUCE_POR_DEFECTO = 0.70
 PESO_FICHAS_COLOCADAS = 100
@@ -36,9 +37,8 @@ FRACCION_MARGEN_TIEMPO = 0.02
 # Colocaciones simuladas por cada segundo del límite de tiempo. Fija el
 # presupuesto determinista de evaluaciones: cada evaluación simula M
 # colocaciones, así que el presupuesto es floor(COLOCACIONES * T / M). Se
-# calibró con las corridas registradas, donde el caso más lento simuló 39042
-# colocaciones por segundo durante el 98 % de T; con margen 2 queda en unas
-# 19100 y se redondeó a 20000. Ver README, sección del criterio de paro.
+# se fijó a partir de las corridas registradas; el límite se redondeó a 20000
+# colocaciones por segundo de T. Ver README, sección del criterio de paro.
 COLOCACIONES_POR_SEGUNDO_DE_LIMITE = 20000
 
 
@@ -82,7 +82,6 @@ class AgenteEvolutivo(Agente):
         """Configura el agente y su fuente privada de aleatoriedad."""
         if tamano_poblacion < 1:
             raise ValueError("El tamaño de población debe ser positivo")
-
         if tamano_torneo < 1:
             raise ValueError("El tamaño de torneo debe ser positivo")
 

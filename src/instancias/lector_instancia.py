@@ -58,7 +58,7 @@ class LectorInstancia:
         if contenido.startswith(MARCA_DE_ORDEN_DE_BYTES) is True:
             contenido = contenido[len(MARCA_DE_ORDEN_DE_BYTES):]
 
-            
+
         lineas_utiles = self._extraer_lineas_utiles(contenido)
 
         if len(lineas_utiles) < 2:

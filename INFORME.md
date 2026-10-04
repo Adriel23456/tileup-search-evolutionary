@@ -1,397 +1,582 @@
-# Informe - Agentes de busqueda y evolutivos para TileUp
+# Informe — Agentes de búsqueda y evolutivos para TileUp
 
-Tarea Corta 1 - Inteligencia Artificial (IC-6200) - Instituto Tecnologico de
+Tarea Corta 1 — Inteligencia Artificial (IC-6200) — Instituto Tecnológico de
 Costa Rica.
 
-Este documento contiene por ahora la **parte experimental** del informe:
-metodologia, comparacion experimental y estudio de escalabilidad (Etapa C). La
-formulacion completa de ambos agentes, que corresponde a la Etapa D, esta
-documentada en el `README.md` y se incorporara aqui.
+Este informe documenta la formulación de ambos agentes y la evidencia
+experimental reproducible. Es complementario al `README.md`: este último explica
+cómo ejecutar el proyecto; aquí se justifican las decisiones de los agentes y
+se interpretan los resultados. Todas las afirmaciones cuantitativas se
+restringen a las baterías y al entorno reportados.
 
-Todas las cifras provienen de los CSV formales
-`resultados/experimentos/comparacion/crudo.csv` y
-`resultados/experimentos/escalabilidad/crudo.csv`, resumidas en los
-`resumen.csv` de cada carpeta. En cada seccion se separan los **hechos
-medidos** de su **interpretacion**.
+Los resultados formales de comparación y escalabilidad provienen de los CSV
+`crudo.csv` y sus resúmenes. La elección de parámetros también se describe por
+separado, a partir de las pruebas exploratorias del agente evolutivo. En cada
+sección se distingue lo que se observó de lo que se concluye.
 
-## 1. Metodologia
+## 1. Formulación de los agentes
 
-### 1.1 Que exige el enunciado y que decidimos nosotros
+### 1.1 Agente de búsqueda: A*
+
+#### Formulación del problema
+
+A* explora distintas formas de colocar las fichas. En cada paso puede usar
+cualquier celda vacía y prefiere los caminos que parecen dejar menos celdas
+ocupadas al final. Para decidir qué camino revisar primero, toma en cuenta los
+colores que todavía faltan: si aún quedan varios colores, sabe que algunos no
+podrán fusionarse entre sí y deberán ocupar espacio al final.
+
+| Elemento | Definición |
+|---|---|
+| Estado | `⟨tablero, i⟩`, donde `i` indica cuál ficha toca colocar. |
+| Estado inicial | Tablero vacío e `i = 0`. |
+| Siguiente acción | Colocar la ficha `i` en cualquier celda vacía y aplicar la fusión. |
+| Ramificación | La cantidad de celdas vacías. |
+| Meta | `i = M`, es decir, ya se colocaron las `M` fichas. |
+
+El costo de una colocación es:
+
+```text
+costo = (N² − 1) − liberadas,   liberadas = |G| − 1
+```
+
+`G` es el grupo que se fusiona al colocar la ficha. Una fusión grande libera
+más celdas, así que su costo es menor. Al terminar una partida se cumple:
+
+```text
+Σ liberadas = M − ocupadas_finales
+g_total = M(N² − 2) + ocupadas_finales
+```
+
+La primera parte de `g_total` es igual para todas las soluciones de la misma
+partida. Por eso, minimizar el costo equivale a dejar menos celdas ocupadas.
+
+**Por qué se usa este costo.** Cada colocación añade una ficha al tablero. Si
+no hay fusión, el grupo tiene tamaño `|G| = 1`, no se libera ninguna celda y el
+costo queda en `N² − 1`, el valor más alto posible. Si al colocar una ficha se
+forma un grupo de tamaño 3, se liberan `3 − 1 = 2` celdas y el costo baja en 2.
+Así, una jugada que junta muchas fichas iguales resulta más barata que una que
+deja una ficha aislada.
+
+La constante `N² − 1` no cambia qué jugada es mejor; solo evita costos
+negativos. Lo importante es la parte que se resta: cuantas más celdas libera
+una jugada, menor es su costo.
+
+**De dónde sale `g_total`.** En una partida con `M` fichas, se parte de cero
+fichas en el tablero. Cada colocación suma una, y cada fusión resta las celdas
+que libera. Por eso:
+
+```text
+ocupadas_finales = M − Σ liberadas
+```
+
+La suma de los costos de las `M` colocaciones es:
+
+```text
+g_total = M(N² − 1) − Σ liberadas
+```
+
+Al sustituir `Σ liberadas` por `M − ocupadas_finales`, se obtiene
+`g_total = M(N² − 2) + ocupadas_finales`. Como `M(N² − 2)` es igual para toda
+solución de esa partida, al comparar dos planes solo queda la diferencia en
+`ocupadas_finales`. Esa es la razón por la que este costo representa el
+objetivo del juego.
+
+#### Cómo decide A*
+
+La lista abierta es una cola de prioridad ordenada por `f = g + h`: `g` es el
+costo acumulado y `h` estima el costo que aún falta. La lista cerrada guarda
+estados que ya se revisaron, y el puntero `padre` permite reconstruir las
+colocaciones al llegar a una solución.
+
+Para estimar cuánto costo falta, A* usa:
+
+```text
+h(n) = max(0, R(N² − 1) − max(0, O + R − C))
+```
+
+Aquí `R` son las fichas pendientes, `O` las celdas ocupadas ahora y `C` los
+colores distintos que aún faltan. La idea es sencilla: al final debe quedar al
+menos una celda por cada color pendiente, porque ya no habrá otra ficha de ese
+color para fusionarla.
+
+**De dónde sale `h(n)`.** Quedan `R` colocaciones, por lo que, antes de contar
+fusiones, el costo que falta sería `R(N² − 1)`. Para bajarlo necesitamos saber
+cuántas celdas se podrían liberar como máximo. Ahora hay `O` celdas ocupadas y
+todavía se colocarán `R` fichas: entre ambas cosas habrá `O + R` celdas antes
+de las fusiones futuras. Sin embargo, como quedan `C` colores, al final al
+menos `C` celdas deben permanecer. Por tanto, las liberaciones futuras no
+pueden superar:
+
+```text
+liberaciones_futuras ≤ max(0, O + R − C)
+```
+
+Al restar ese máximo posible al costo base se obtiene `h(n)`. El `max(0, ...)`
+exterior evita una estimación negativa; el interior evita decir que se pueden
+liberar menos de cero celdas.
+
+Por ejemplo, en un tablero de 3×3, si hay `O = 4` celdas ocupadas, quedan
+`R = 3` fichas y aparecen `C = 2` colores, el costo base es `3(9 − 1) = 24`.
+Como se pueden liberar como máximo `4 + 3 − 2 = 5` celdas, la estimación es
+`h(n) = 24 − 5 = 19`. No está adivinando la solución exacta: solo afirma que
+ninguna continuación puede costar menos que 19.
+
+La estimación nunca se pasa del costo real que falta, así que si A* alcanza la
+meta durante la búsqueda, obtiene el menor número posible de celdas ocupadas.
+Al colocar la última ficha de un color, la estimación puede cambiar de golpe;
+por eso, si aparece una forma más barata de llegar a un estado ya cerrado, el
+agente lo vuelve a abrir. En otras palabras, no descarta definitivamente un
+tablero solo porque ya lo hubiera visto: si luego encuentra una forma más
+barata de llegar a él, lo revisa de nuevo.
+
+#### Límite de tiempo y completado
+
+El agente tiene un límite de exploración para terminar a tiempo. Con un límite
+de 10 segundos revisa como máximo 22000 estados. Si todavía no completó la
+partida, toma el mejor tablero encontrado hasta ese momento y termina con una
+regla sencilla que busca la mejor fusión inmediata. La solución sigue siendo
+válida, pero ya no se puede asegurar que sea la mejor posible. La columna
+`search_cutoff` indica cuándo ocurrió esto.
+
+### 1.2 Agente evolutivo
+
+#### Representación y aptitud
+
+El agente evolutivo mantiene varias propuestas de partida y las mejora poco a
+poco. Una propuesta indica dónde colocar cada ficha. Las propuestas que colocan
+más fichas y dejan menos celdas ocupadas reciben mejor puntuación. Solo entrega
+una propuesta que puede jugarse completa y de forma legal.
+
+Cada individuo contiene `M` genes; cada gen es una coordenada propuesta para
+la ficha correspondiente. Para evaluarlo se simula la partida. Si una
+coordenada ya está ocupada, se cuenta una reparación virtual para poder seguir
+evaluando el resto de la propuesta; una propuesta con reparaciones nunca se
+entrega como solución.
+
+Con los valores usados en las pruebas, su puntuación es:
+
+```text
+aptitud = 100 × fichas_colocadas − 10 × celdas_ocupadas − 25 × reparaciones
+```
+
+Así, primero le importa colocar fichas; después, dejar pocas celdas ocupadas.
+Las reparaciones penalizan propuestas cuya secuencia tuvo que ajustarse para
+seguir siendo legal.
+
+#### Selección y cambio
+
+| Componente | Decisión implementada |
+|---|---|
+| Población inicial | 20 individuos: un plan legal guiado por fusiones y los otros 19 planes legales aleatorios, derivados de la semilla. |
+| Selección | Escoge propuestas buenas para crear nuevas alternativas. |
+| Cruce y cambio | Combina dos propuestas y cambia algunas posiciones para explorar opciones nuevas. |
+| Reemplazo | Conserva una propuesta nueva solo si mejora a una de las actuales. |
+| Paro | Usa un presupuesto de trabajo que depende del tiempo disponible y de la cantidad de fichas. |
+
+La selección es por torneo de tres. Después se decide de forma independiente si
+los dos padres se cruzan: con probabilidad `0.70` se aplica un cruce de un punto
+y con probabilidad `0.30` no hay cruce, por lo que el hijo comienza como una
+copia del primer padre. Por tanto, no todos los descendientes combinan
+información de dos padres.
+
+Luego se decide cuántos genes mutan. La cantidad se escoge uniformemente entre
+`0`, `1`, `2` y `3`, respetando que no se pueden mutar más genes que los que
+tiene el individuo. En el caso normal de `M >= 3`, cada cantidad tiene
+probabilidad `0.25`: hay `0.25` de probabilidad de que el individuo no mute y
+`0.75` de probabilidad de que mute al menos un gen. Si `M` es menor que 3,
+estas probabilidades se ajustan porque la cantidad se limita a `M`.
+
+La mutación es guiada y no consiste en escoger cualquier coordenada al azar.
+Para cada gen seleccionado, el agente considera las celdas legales del estado
+actual y prefiere la que produce la mayor componente conexa de fichas del mismo
+color, es decir, la fusión inmediata más grande. Si hay empate, prefiere la
+celda más cercana a la coordenada original y finalmente resuelve de forma
+determinista por fila y columna. Las posiciones mutadas son distintas; si el
+padre tenía reparaciones, se prioriza además el primer conflicto. Un hijo solo
+reemplaza al peor individuo si realmente lo mejora.
+
+El caso conjunto de ausencia de cruce y cero mutaciones tiene probabilidad
+`0.30 × 0.25 = 0.075` (7.5 %) antes de considerar el límite `M`: en ese caso se
+reutiliza directamente una copia del primer padre y su aptitud ya calculada.
+
+La población no parte de veinte individuos aleatorios. Primero se construye un
+individuo base completamente legal mediante una solución guiada desde el
+estado inicial: en cada paso se elige la celda legal que permite la mayor
+fusión inmediata; los empates se resuelven por distancia y luego por
+coordenadas. Este individuo garantiza que desde el inicio haya una solución
+completa y entregable. Después se generan los otros 19 individuos usando
+elecciones legales aleatorias derivadas de la semilla. De esta manera, la
+población inicial combina una solución de buena calidad conocida con diversidad
+para explorar otras secuencias.
+
+#### Población y límite
+
+El límite no se implementa dejando que el reloj decida cuándo terminar. El
+agente recibe un límite `T` en segundos, pero lo transforma en un presupuesto
+fijo de evaluaciones de aptitud:
+
+```text
+presupuesto = max(1, floor(20000 × T / M))
+```
+
+`M` es la cantidad de fichas. Una evaluación consiste en simular el cromosoma
+completo, es decir, hasta `M` colocaciones, y calcular su aptitud. Por eso se
+presupuestan aproximadamente `20000 × T` colocaciones simuladas: cuando hay
+más fichas, cada evaluación cuesta más y caben menos evaluaciones dentro del
+mismo presupuesto. Por ejemplo, con `T = 10 s`:
+
+| Fichas `M` | Evaluaciones máximas |
+|---:|---:|
+| 5 | `floor(200000 / 5) = 40000` |
+| 8 | `floor(200000 / 8) = 25000` |
+| 13 | `floor(200000 / 13) = 15384` |
+| 25 | `floor(200000 / 25) = 8000` |
+
+Este contador incluye las evaluaciones de la población inicial y las de los
+hijos creados durante la evolución. Primero se evalúa el individuo guiado y se
+van generando los demás individuos iniciales mientras quede presupuesto. Luego
+se crean hijos y se detiene la evolución exactamente cuando se alcanza el
+presupuesto. Si el hijo no tiene cruce ni mutación, se reutiliza la aptitud del
+padre y no se cuenta una evaluación nueva, porque no se volvió a simular.
+
+El reloj se usa únicamente como salvaguarda: el agente deja de trabajar al
+llegar al `98 %` de `T` si la computadora está tardando más de lo previsto.
+Esto permite guardar una solución válida antes de exceder el límite obligatorio,
+pero esa interrupción queda marcada como `clock_safeguard = True`. En las
+corridas normales el presupuesto termina primero, por lo que la salvaguarda no
+decide el resultado.
+
+Así, con la misma instancia, semilla, configuración y `T`, se ejecuta la misma
+cantidad de evaluaciones y se obtiene la misma decisión, independientemente de
+pequeñas variaciones en la velocidad de la computadora.
+
+**Configuración del evolutivo.** Las tablas de las secciones 3 y 4 corresponden
+a los valores fijos de diseño usados en esta entrega: población 20, torneo 3,
+cruce 0.70 y pesos 100/10/25. Se realizaron pruebas exploratorias de varias
+configuraciones antes de fijarlos, pero no constituyen una calibración
+exhaustiva ni forman parte de las baterías formales.
+
+#### Exploración de configuraciones y del presupuesto
+
+En las instancias exploratorias, las configuraciones finalistas empataron en
+los dos criterios de calidad: fichas colocadas y celdas ocupadas. Algunas
+mostraron tiempos ligeramente menores, pero la diferencia fue menor que la
+variación observada entre corridas; por eso se interpreta como ruido de
+medición y no como evidencia de que una configuración sea más rápida.
+
+Esto permite tratar como equivalentes a las configuraciones probadas en esas
+instancias y elegir una configuración simple, cercana a los valores ya usados.
+No significa que cualquier configuración produzca siempre el mismo resultado:
+la conclusión se limita a las finalistas, las instancias y las semillas
+exploradas.
+
+También se evaluó si el empate podía deberse a que el presupuesto de
+evaluaciones fuera demasiado corto. Para el finalista `aleatorio_014` se
+repitieron las mismas tres configuraciones y semillas 1--3 con límites de 20 y
+40 segundos, frente a la referencia de 10 segundos. Las 18 corridas adicionales
+fueron legales, no activaron la salvaguarda del reloj y conservaron la misma
+calidad observada a 10 segundos: todas colocaron la secuencia completa y
+terminaron con tres celdas ocupadas. El tiempo promedio aumentó a 8.9 s y
+17.7 s, respectivamente, sin mejorar esos criterios.
+
+Para este conjunto acotado, el presupuesto de 10 segundos no parece explicar
+el empate: el agente ya encuentra esa calidad antes de agotarlo. En instancias
+más difíciles podría ocurrir lo contrario; para afirmarlo harían falta nuevas
+pruebas pareadas con presupuestos mayores.
+
+## 2. Metodologia
+
+### 2.1 Que exige el enunciado y que decidimos nosotros
 
 | Elemento | Origen |
 |---|---|
 | Ambos agentes sobre el mismo conjunto de instancias | Enunciado |
 | Al menos 6 configuraciones de N, K y M, con al menos 3 semillas cada una | Enunciado |
-| Fichas colocadas, celdas ocupadas, tiempo y esfuerzo, con dispersion entre semillas | Enunciado |
-| Escalabilidad: al menos 3 valores de N y 3 de K, 3 semillas, grafica de tendencia | Enunciado (grupos de tres) |
+| Fichas colocadas, celdas ocupadas y tiempo | Enunciado |
+| Escalabilidad: al menos 3 tamaños de tablero y 3 cantidades de colores | Enunciado |
 | Limite de tiempo `T = 10 s` comun a todas las corridas | Decision nuestra, tras el piloto |
 | Semillas pareadas `s = 1, 2, 3` | Decision nuestra |
-| Densidad `rho = M / N^2` para fijar M | Decision nuestra |
+| Cantidad de fichas en cada tamaño de tablero | Decisión nuestra |
+| Densidad de fichas `rho = M / N²` en escalabilidad | Decisión nuestra |
 | Las seis configuraciones de la comparacion | Decision nuestra, tras el piloto |
-| Presupuestos deterministas de trabajo de los agentes | Decision nuestra (ver 1.4) |
+| Cantidad de intentos que usa cada agente | Decisión nuestra (ver 2.4) |
 
-### 1.2 Instancias y semillas
+### 2.2 Instancias y semillas
 
 Todas las instancias las produce el generador del proyecto
 (`python main.py generar`). Son resolubles por construccion: el generador juega
 una partida legal completa mientras inventa la secuencia.
 
-Las semillas son **pareadas**. Para cada configuracion y cada `s` en {1, 2, 3},
-la semilla `s` genera la instancia (`instance_seed`) y esa misma `s` se entrega
-al agente (`agent_seed`). Los dos agentes corren sobre **el mismo archivo** de
-instancia. En los CSV ambas semillas se registran en columnas separadas.
+Para cada semilla usamos exactamente la misma instancia con los dos agentes.
+Así, cuando los comparamos, la diferencia viene del agente y no de un tablero
+distinto.
 
-### 1.3 Metricas
+### 2.3 Metricas
 
 | Columna | Significado |
 |---|---|
 | `tiles_placed` | Fichas colocadas. Primer criterio del concurso. |
 | `occupied_cells` | Celdas ocupadas al terminar. Segundo criterio del concurso. |
 | `elapsed_s` | Tiempo de planificacion del agente, en segundos. Tercer criterio. |
-| `effort` | Nodos expandidos (A*) o evaluaciones de aptitud (evolutivo). **Son unidades distintas y no se comparan entre si.** |
 | `complete` | La solucion final consumio la secuencia completa. |
-| `search_cutoff` | Solo A*: la busqueda se detuvo sin alcanzar la meta y la partida se completo con la politica avida. |
-| `clock_safeguard` | El reloj de salvaguarda detuvo al agente antes de agotar su presupuesto (ver 1.4). |
+| `search_cutoff` | Solo A*: la búsqueda se detuvo antes de llegar a la meta y luego completó la partida con su regla sencilla. |
+| `clock_safeguard` | El reloj de protección detuvo al agente antes de terminar su trabajo previsto. |
 
-`complete = True` y `search_cutoff = True` no se contradicen: A* puede dejar de
-alcanzar la meta durante la busqueda y aun asi entregar una solucion que
-consume toda la secuencia, gracias al completado posterior.
+Una partida puede aparecer como completa aunque A* haya llegado a su límite,
+porque en ese caso coloca las fichas restantes con su regla sencilla.
 
-### 1.4 Criterio de paro, limite de tiempo y determinismo
+### 2.4 Cómo respetamos el tiempo
 
-El enunciado exige a la vez respetar el limite de tiempo y que la misma entrada
-produzca la misma solucion. Una primera version detenia a los agentes por
-reloj, y eso hizo que A* entregara soluciones distintas para entradas identicas
-en sesiones distintas. Por eso ambos agentes se detienen ahora por un
-presupuesto de trabajo que depende solo de la entrada, y el reloj queda como
-salvaguarda:
+El enunciado pide respetar el tiempo y obtener el mismo resultado cuando la
+entrada y la semilla son iguales. Por eso ambos agentes usan una cantidad fija
+de trabajo. El reloj solo actúa como protección si la máquina tarda más de lo
+esperado.
 
-| Agente | Presupuesto con `T = 10 s` | Salvaguarda |
+| Agente | Trabajo máximo con `T = 10 s` | Salvaguarda |
 |---|---|---|
-| `busqueda_astar` | 22000 nodos expandidos | 85 % de `T` |
-| `evolutivo` | `floor(200000 / M)` evaluaciones de aptitud | 98 % de `T` |
+| `busqueda_astar` | `min(120000, floor(2200 × T))` opciones; con `T = 10`, son 22000 | 85 % de `T` |
+| `evolutivo` | `floor(200000 / M)` propuestas; hay menos cuando hay más fichas | 98 % de `T` |
 
-El procedimiento con que se fijaron las constantes esta en el `README.md`,
-seccion *Criterio de paro y determinismo*. Una corrida solo se considera
-reproducible si `clock_safeguard = False`.
+La salvaguarda no decide cuántas opciones revisa el agente: el presupuesto de
+la tabla es el que mantiene el resultado repetible. El reloj solo lo detiene si
+la computadora está tardando más de lo esperado, dejando tiempo para guardar
+una solución válida. Si ocurre, queda registrado como `clock_safeguard = True`
+y esa corrida no se usa para demostrar que el resultado se puede repetir.
 
-### 1.5 Validez de las corridas
+### 2.5 Validez de las corridas
 
 Cada corrida paso por el validador independiente (`main.py validar`). Una
 corrida cuenta como valida solo si el validador acepta la solucion y ademas las
 fichas colocadas, celdas ocupadas y ficha mayor que informo el agente coinciden
 con las que reproduce el validador.
 
-| Bateria | Corridas | `status = ok` | Validadas | `clock_safeguard = False` | Revalidacion posterior |
-|---|---|---|---|---|---|
-| Comparacion | 36 | 36 | 36 | 36 | 36/36 |
-| Escalabilidad | 54 | 54 | 54 | 54 | 54/54 |
+| Batería | Corridas | Soluciones válidas |
+|---|---|---|
+| Comparación | 36 | 36 |
+| Escalabilidad | 54 | 54 |
 
-Ninguna corrida excedio el limite. El mayor uso de `T` fue del 38 % en la
-comparacion y del 42 % en la escalabilidad.
+Ninguna corrida excedió el tiempo límite ni activó la salvaguarda.
 
-### 1.6 Entorno
+### 2.6 Entorno
 
-Commit `f0be0f8`, Python 3.14.7, Windows 11, procesador Intel64 Family 6 Model
-183, 32 nucleos logicos. Corridas secuenciales, sin paralelismo, el
-2026-09-30. Los metadatos completos estan en `metadatos.json` de cada bateria.
+Las pruebas se ejecutaron de forma secuencial en una misma computadora. Los
+datos técnicos del entorno están en `metadatos.json` de cada batería.
 
-## 2. Comparacion experimental
+## 3. Comparacion experimental
 
-### 2.1 Configuraciones
+### 3.1 Configuraciones
 
-Seis configuraciones elegidas con el piloto (`resultados/experimentos/piloto/`)
-para cubrir los dos regimenes de A*: alcanzar la meta antes de agotar su
-presupuesto, y agotarlo y recurrir al completado.
+Elegimos seis casos de prueba de distintos tamaños y cantidades de fichas. En
+algunos A* logra explorar una partida completa; en otros llega a su límite y
+termina con su regla sencilla.
 
-| Config | N | K | M | rho |
-|---|---|---|---|---|
-| n3_k4_m14 | 3 | 4 | 14 | 1.56 |
-| n4_k4_m8 | 4 | 4 | 8 | 0.5 |
-| n4_k2_m16 | 4 | 2 | 16 | 1 |
-| n5_k2_m13 | 5 | 2 | 13 | 0.52 |
-| n5_k4_m25 | 5 | 4 | 25 | 1 |
-| n6_k4_m36 | 6 | 4 | 36 | 1 |
+| Configuración | Tamaño | Colores | Fichas |
+|---|---|---|---|
+| n3_k4_m14 | 3×3 | 4 | 14 |
+| n4_k4_m8 | 4×4 | 4 | 8 |
+| n4_k2_m16 | 4×4 | 2 | 16 |
+| n5_k2_m13 | 5×5 | 2 | 13 |
+| n5_k4_m25 | 5×5 | 4 | 25 |
+| n6_k4_m36 | 6×6 | 4 | 36 |
 
 Son 6 configuraciones × 3 semillas × 2 agentes = 36 corridas.
 
-### 2.2 Resultados
+### 3.2 Resultados
 
-Cada celda muestra media ± desviacion estandar muestral [minimo–maximo] sobre
-las tres semillas.
+La tabla muestra el promedio de las tres partidas de cada caso. Los dos agentes
+colocaron todas las fichas en todos ellos.
 
-| Config | Agente | ok | Corte de busqueda | Colocadas | Ocupadas | Tiempo (s) | Esfuerzo |
-|---|---|---|---|---|---|---|---|
-| n3_k4_m14 | A* | 3/3 | 0/3 | 14 ± 0 [14–14] | 3.67 ± 0.58 [3–4] | 0.22 ± 0.21 [0.02–0.44] | 9018 ± 9231 [656–18923] nodos |
-| n3_k4_m14 | Evolutivo | 3/3 | — | 14 ± 0 [14–14] | 3.67 ± 0.58 [3–4] | 2.53 ± 0.22 [2.36–2.78] | 14285 ± 0 [14285–14285] evaluaciones |
-| n4_k4_m8 | A* | 3/3 | 1/3 | 8 ± 0 [8–8] | 3 ± 0 [3–3] | 1.19 ± 1.06 [0.27–2.35] | 11647 ± 9695 [2781–22000] nodos |
-| n4_k4_m8 | Evolutivo | 3/3 | — | 8 ± 0 [8–8] | 3 ± 0 [3–3] | 3.60 ± 0.16 [3.47–3.78] | 25000 ± 0 [25000–25000] evaluaciones |
-| n4_k2_m16 | A* | 3/3 | 3/3 | 16 ± 0 [16–16] | 4.67 ± 1.53 [3–6] | 1.81 ± 0.09 [1.72–1.89] | 22000 ± 0 [22000–22000] nodos |
-| n4_k2_m16 | Evolutivo | 3/3 | — | 16 ± 0 [16–16] | 2 ± 0 [2–2] | 3.25 ± 0.27 [3.09–3.56] | 12500 ± 0 [12500–12500] evaluaciones |
-| n5_k2_m13 | A* | 3/3 | 3/3 | 13 ± 0 [13–13] | 5.67 ± 0.58 [5–6] | 3.52 ± 0.24 [3.32–3.79] | 22000 ± 0 [22000–22000] nodos |
-| n5_k2_m13 | Evolutivo | 3/3 | — | 13 ± 0 [13–13] | 2 ± 0 [2–2] | 3.42 ± 0.13 [3.33–3.57] | 15384 ± 0 [15384–15384] evaluaciones |
-| n5_k4_m25 | A* | 3/3 | 3/3 | 25 ± 0 [25–25] | 16 ± 1 [15–17] | 1.05 ± 0.17 [0.95–1.25] | 22000 ± 0 [22000–22000] nodos |
-| n5_k4_m25 | Evolutivo | 3/3 | — | 25 ± 0 [25–25] | 4 ± 0 [4–4] | 3.07 ± 0.16 [2.90–3.21] | 8000 ± 0 [8000–8000] evaluaciones |
-| n6_k4_m36 | A* | 3/3 | 3/3 | 36 ± 0 [36–36] | 26.67 ± 2.52 [24–29] | 1.23 ± 0.16 [1.05–1.34] | 22000 ± 0 [22000–22000] nodos |
-| n6_k4_m36 | Evolutivo | 3/3 | — | 36 ± 0 [36–36] | 4 ± 0 [4–4] | 3.33 ± 0.34 [2.95–3.61] | 5555 ± 0 [5555–5555] evaluaciones |
+| Tamaño | Colores | Fichas | Celdas ocupadas: A* | Celdas ocupadas: evolutivo | Tiempo medio: A* / evolutivo |
+|---|---|---|---|---|---|
+| 3×3 | 4 | 14 | 3.67 | 3.67 | 0.40 s / 4.20 s |
+| 4×4 | 4 | 8 | 3 | 3 | 2.12 s / 5.63 s |
+| 4×4 | 2 | 16 | 4.67 | 2 | 3.07 s / 4.78 s |
+| 5×5 | 2 | 13 | 5.67 | 2 | 6.19 s / 5.64 s |
+| 5×5 | 4 | 25 | 16 | 4 | 2.05 s / 4.96 s |
+| 6×6 | 4 | 36 | 26.67 | 4.33 | 2.31 s / 5.36 s |
 
 ![Calidad y tiempo](resultados/experimentos/comparacion/graficas/comparacion_calidad_y_tiempo.png)
 
-![Esfuerzo](resultados/experimentos/comparacion/graficas/comparacion_esfuerzo.png)
+### 3.3 Lo que vimos
 
-### 2.3 Hechos medidos
+- Los dos agentes lograron colocar todas las fichas en las 36 partidas. Por eso,
+  en estas pruebas la diferencia importante es cuántas celdas quedaron
+  ocupadas al final.
+- El evolutivo dejó menos celdas ocupadas en 12 de las 18 instancias y empató
+  en las otras 6. No quedó por detrás en ninguna.
+- Cuando A* logró terminar su búsqueda, ambos obtuvieron el mismo resultado.
+  Cuando el tablero fue más difícil y A* tuvo que detenerse antes, el
+  evolutivo dejó mejores tableros finales.
+- A* fue mucho más rápido en los casos pequeños que pudo resolver por completo.
+  El evolutivo tardó unos pocos segundos de forma más pareja.
 
-- **Fichas colocadas.** Ambos agentes colocaron las M fichas en las 36
-  corridas. En estas instancias esta metrica no distingue a los agentes.
-- **Celdas ocupadas.** Comparando instancia por instancia (18 instancias), el
-  evolutivo dejo menos celdas ocupadas que A* en 12, las mismas en 6 y mas en
-  ninguna. En las 5 instancias donde A* alcanzo la meta, ambos dejaron
-  exactamente las mismas celdas.
-- **La diferencia crece con el tamano.** Con A* cortando la busqueda, la media
-  de celdas ocupadas fue de 4.67 frente a 2 (n4_k2_m16), 5.67 frente a 2
-  (n5_k2_m13), 16 frente a 4 (n5_k4_m25) y 26.67 frente a 4 (n6_k4_m36).
-- **Tiempo.** A* tardo entre 0.02 y 0.44 s donde alcanzo la meta en todas las
-  semillas (n3_k4_m14), y entre 0.95 y 3.79 s donde agoto el presupuesto. El
-  evolutivo tardo entre 2.36 y 3.78 s en todas las configuraciones.
-- **Esfuerzo.** A* expandio entre 656 y 18923 nodos cuando alcanzo la meta, y
-  exactamente 22000 (su presupuesto) cuando no. El evolutivo hizo siempre
-  `floor(200000 / M)` evaluaciones, sin dispersion entre semillas.
-- **Tiempo por nodo.** Expandir los mismos 22000 nodos costo de media 3.52 s en
-  n5_k2_m13, pero 1.05 s en n5_k4_m25 y 1.23 s en n6_k4_m36.
+### 3.4 Lectura de la comparación
 
-### 2.4 Interpretacion
+En estas pruebas no hay un ganador absoluto. A* es una muy buena opción para
+tableros pequeños: encuentra una buena respuesta rápidamente. En los tableros
+más grandes de la batería, el evolutivo conservó mejor la calidad de la
+respuesta, aunque tardó más. Esta conclusión aplica solamente a los tamaños y
+tiempos probados aquí.
 
-- Con el orden del concurso (mas fichas, luego menos celdas, luego menos
-  tiempo), las dos primeras metricas no favorecen a A* en ninguna instancia: el
-  primer criterio empata siempre y en el segundo el evolutivo empata o gana.
-  Donde ambos empatan en fichas y celdas, A* fue mas rapido en las
-  configuraciones en que alcanzo la meta.
-- Cuando A* alcanza la meta, su heuristica admisible y la reapertura de nodos
-  garantizan que la solucion es optima en celdas ocupadas (ver `README.md`).
-  Que el evolutivo empate en las 5 instancias indica que alcanzo el optimo en
-  ellas.
-- Cuando A* agota el presupuesto, la calidad depende del completado avido desde
-  el mejor estado explorado, y empeora con el tamano. El evolutivo, que siempre
-  construye y mejora planes completos, no muestra esa degradacion en este
-  rango.
-- La diferencia de tiempo por nodo probablemente se explica por el costo de
-  expandir un nodo, que genera un sucesor por cada celda vacia; un tablero mas
-  lleno genera menos sucesores. No medimos esa causa directamente.
-- No declaramos un ganador general: la ventaja observada del evolutivo en
-  celdas ocupadas se limita a estas seis configuraciones, a `T = 10 s` y a los
-  presupuestos fijados.
+### 3.5 Variación entre partidas
 
-### 2.5 Dispersion entre semillas
+Cambiar la semilla puede cambiar qué tan difícil resulta una partida concreta,
+especialmente para A*. Aun así, la tendencia general se mantuvo: el evolutivo
+fue igual o mejor en celdas ocupadas y A* fue más rápido cuando pudo terminar
+su búsqueda.
 
-- La mayor dispersion es la del **esfuerzo de A* cuando alcanza la meta**: en
-  n3_k4_m14 expandio 656, 7475 y 18923 nodos segun la semilla. Cuanto le cuesta
-  a A* resolver depende mucho de la instancia concreta.
-- Cuando A* agota el presupuesto su esfuerzo no varia (22000), pero sus celdas
-  ocupadas si: desviacion de 2.52 en n6_k4_m36 (24 a 29 celdas).
-- El evolutivo mostro desviacion cero en celdas ocupadas en cinco de las seis
-  configuraciones, y 0.58 en la restante.
+## 4. Escalabilidad
 
-## 3. Escalabilidad
+### 4.1 Cómo hicimos las pruebas
 
-### 3.1 Diseno
+Probamos tableros de 3×3, 4×4 y 5×5, con 2, 3 y 4 colores. Para cada caso se
+usaron tres partidas distintas y se compararon ambos agentes en las mismas
+partidas.
 
-Factorial completo **N ∈ {3, 4, 5} × K ∈ {2, 3, 4}**, con 3 semillas pareadas y
-ambos agentes: 9 celdas × 3 × 2 = 54 corridas.
+Para que la comparación de escalabilidad fuera razonable, no mantuvimos fija
+la cantidad de fichas `M` al cambiar el tamaño del tablero. En su lugar,
+mantuvimos aproximadamente constante la densidad de fichas:
 
-**M se fija con rho = 0.5**, es decir `M = floor(0.5 * N^2 + 0.5)`: M = 5, 8 y
-13 para N = 3, 4 y 5. Es una decision metodologica nuestra, no un parametro del
-enunciado. Se eligio porque:
+```text
+rho = M / N²
+```
 
-- mantiene aproximadamente constante la carga respecto al area del tablero, de
-  modo que crecer N significa el mismo tipo de problema en un tablero mayor;
-- con rho <= 1 ninguna partida puede perderse, asi que ninguna corrida termina
-  antes (y mas barata) por una derrota, lo que sesgaria el costo;
-- segun el piloto, coloca dentro del rango N = 3..5 la transicion de A* entre
-  alcanzar la meta y agotar la busqueda.
+Aquí `N²` es la cantidad total de celdas del tablero y `M` es la cantidad de
+fichas que deben colocarse. Por ejemplo, `rho = 0.5` significa que la
+secuencia tiene aproximadamente media ficha por cada celda disponible. Así,
+un tablero grande recibe más fichas que uno pequeño, pero conserva una carga
+relativa parecida. Si hubiéramos usado siempre el mismo `M`, el tablero grande
+habría quedado artificialmente vacío y la comparación mediría sobre todo esa
+diferencia de carga.
 
-Por construccion, **al variar K, N y M quedan fijos**, y el efecto de K queda
-aislado. **Al variar N, M crece con el**: el efecto medido de N es el del
-tablero y la secuencia juntos, que en este diseno no se pueden separar.
+Como `M` debe ser un número entero, usamos la fórmula de redondeo al entero más
+cercano:
 
-### 3.2 Resultados
+```text
+rho = M / N² = 0.5
+M = floor(0.5 × N² + 0.5)
+```
 
-| Config | Agente | ok | Corte de busqueda | Colocadas | Ocupadas | Tiempo (s) | Esfuerzo |
-|---|---|---|---|---|---|---|---|
-| n3_k2_m5 | A* | 3/3 | 0/3 | 5 ± 0 [5–5] | 2 ± 0 [2–2] | 0.05 ± 0.08 [0.00–0.14] | 782 ± 1292 [17–2274] nodos |
-| n3_k2_m5 | Evolutivo | 3/3 | — | 5 ± 0 [5–5] | 2 ± 0 [2–2] | 3.37 ± 0.17 [3.25–3.56] | 40000 ± 0 [40000–40000] evaluaciones |
-| n3_k3_m5 | A* | 3/3 | 0/3 | 5 ± 0 [5–5] | 2.67 ± 0.58 [2–3] | 0.07 ± 0.10 [0.00–0.18] | 1177 ± 1676 [17–3098] nodos |
-| n3_k3_m5 | Evolutivo | 3/3 | — | 5 ± 0 [5–5] | 2.67 ± 0.58 [2–3] | 3.13 ± 0.04 [3.11–3.17] | 40000 ± 0 [40000–40000] evaluaciones |
-| n3_k4_m5 | A* | 3/3 | 0/3 | 5 ± 0 [5–5] | 2.67 ± 0.58 [2–3] | 0.09 ± 0.06 [0.02–0.14] | 1650 ± 1081 [402–2274] nodos |
-| n3_k4_m5 | Evolutivo | 3/3 | — | 5 ± 0 [5–5] | 2.67 ± 0.58 [2–3] | 3.20 ± 0.33 [2.94–3.57] | 40000 ± 0 [40000–40000] evaluaciones |
-| n4_k2_m8 | A* | 3/3 | 0/3 | 8 ± 0 [8–8] | 2 ± 0 [2–2] | 1.12 ± 0.96 [0.26–2.15] | 10750 ± 8628 [2781–19912] nodos |
-| n4_k2_m8 | Evolutivo | 3/3 | — | 8 ± 0 [8–8] | 2 ± 0 [2–2] | 3.68 ± 0.30 [3.40–3.99] | 25000 ± 0 [25000–25000] evaluaciones |
-| n4_k3_m8 | A* | 3/3 | 2/3 | 8 ± 0 [8–8] | 3 ± 0 [3–3] | 2.34 ± 0.36 [1.93–2.55] | 20995 ± 1741 [18985–22000] nodos |
-| n4_k3_m8 | Evolutivo | 3/3 | — | 8 ± 0 [8–8] | 3 ± 0 [3–3] | 3.22 ± 0.06 [3.15–3.26] | 25000 ± 0 [25000–25000] evaluaciones |
-| n4_k4_m8 | A* | 3/3 | 1/3 | 8 ± 0 [8–8] | 3 ± 0 [3–3] | 1.14 ± 1.03 [0.24–2.26] | 11647 ± 9695 [2781–22000] nodos |
-| n4_k4_m8 | Evolutivo | 3/3 | — | 8 ± 0 [8–8] | 3 ± 0 [3–3] | 3.29 ± 0.10 [3.18–3.39] | 25000 ± 0 [25000–25000] evaluaciones |
-| n5_k2_m13 | A* | 3/3 | 3/3 | 13 ± 0 [13–13] | 5.67 ± 0.58 [5–6] | 3.52 ± 0.38 [3.14–3.91] | 22000 ± 0 [22000–22000] nodos |
-| n5_k2_m13 | Evolutivo | 3/3 | — | 13 ± 0 [13–13] | 2 ± 0 [2–2] | 3.79 ± 0.42 [3.38–4.21] | 15384 ± 0 [15384–15384] evaluaciones |
-| n5_k3_m13 | A* | 3/3 | 3/3 | 13 ± 0 [13–13] | 6.67 ± 1.15 [6–8] | 3.30 ± 0.24 [3.04–3.52] | 22000 ± 0 [22000–22000] nodos |
-| n5_k3_m13 | Evolutivo | 3/3 | — | 13 ± 0 [13–13] | 3 ± 0 [3–3] | 3.45 ± 0.07 [3.39–3.53] | 15384 ± 0 [15384–15384] evaluaciones |
-| n5_k4_m13 | A* | 3/3 | 3/3 | 13 ± 0 [13–13] | 8.33 ± 0.58 [8–9] | 2.82 ± 0.24 [2.64–3.09] | 22000 ± 0 [22000–22000] nodos |
-| n5_k4_m13 | Evolutivo | 3/3 | — | 13 ± 0 [13–13] | 3.67 ± 0.58 [3–4] | 3.09 ± 0.11 [2.97–3.17] | 15384 ± 0 [15384–15384] evaluaciones |
+El `+ 0.5` antes de aplicar `floor` implementa ese redondeo. Por eso:
+
+| Tamaño | Celdas `N²` | Cálculo | Fichas `M` | Densidad real |
+|---|---:|---:|---:|---:|
+| 3×3 | 9 | `floor(4.5 + 0.5)` | 5 | `5/9 ≈ 0.56` |
+| 4×4 | 16 | `floor(8 + 0.5)` | 8 | `8/16 = 0.50` |
+| 5×5 | 25 | `floor(12.5 + 0.5)` | 13 | `13/25 = 0.52` |
+
+Las densidades reales quedan cerca de `0.5`, aunque no pueden ser exactamente
+iguales en todos los tamaños porque `M` es entero. De esta manera, al aumentar
+`N`, aumentan tanto el espacio de búsqueda como la cantidad de fichas, sin que
+la instancia grande sea trivial por tener muy pocas fichas.
+
+Además, `rho = 0.5` deja aproximadamente la mitad de las celdas libres antes
+de considerar las fusiones. Esa holgura evita que una partida falle únicamente
+porque el tablero se llenó; si una corrida termina antes, la causa puede
+atribuirse al comportamiento del agente o de la instancia, no a haber elegido
+una cantidad de fichas cercana a la capacidad máxima del tablero.
+
+### 4.2 Resultados
+
+Todos los casos se jugaron completos. La tabla conserva solo los resultados
+necesarios para comparar la calidad final y si A* alcanzó a terminar su
+búsqueda.
+
+| Tamaño | Colores | Fichas | Celdas ocupadas: A* | Celdas ocupadas: evolutivo | A* terminó su búsqueda |
+|---|---|---|---|---|---|
+| 3×3 | 2 | 5 | 2 | 2 | 3 de 3 |
+| 3×3 | 3 | 5 | 2.67 | 2.67 | 3 de 3 |
+| 3×3 | 4 | 5 | 2.67 | 2.67 | 3 de 3 |
+| 4×4 | 2 | 8 | 2 | 2 | 3 de 3 |
+| 4×4 | 3 | 8 | 3 | 3 | 1 de 3 |
+| 4×4 | 4 | 8 | 3 | 3 | 2 de 3 |
+| 5×5 | 2 | 13 | 5.67 | 2 | 0 de 3 |
+| 5×5 | 3 | 13 | 6.67 | 3 | 0 de 3 |
+| 5×5 | 4 | 13 | 8.33 | 3.67 | 0 de 3 |
 
 ![Escalabilidad frente a N](resultados/experimentos/escalabilidad/graficas/escalabilidad_vs_n.png)
 
-![Escalabilidad frente a K](resultados/experimentos/escalabilidad/graficas/escalabilidad_vs_k.png)
+### 4.3 Qué pasó al agrandar el tablero
 
-### 3.3 Efecto de N, con K fijo
+La gráfica resume la tendencia principal. En los tableros de 3×3, A* terminó
+su búsqueda en todas las partidas y respondió muy rápido. En 4×4 empezó a
+quedarse sin tiempo en algunas partidas. En 5×5 tuvo que detenerse antes en
+todas ellas.
 
-**Hechos medidos.**
+Cuando A* se detenía antes, todavía podía dar una jugada válida, pero dejaba
+más celdas ocupadas. Por ejemplo, en los casos de 5×5 el evolutivo dejó entre 2
+y 4 celdas ocupadas, mientras que A* dejó entre 6 y 8 aproximadamente. El
+evolutivo mantuvo resultados similares al crecer el tablero; en la mayoría de
+los casos tardó unos segundos más, aunque en n5_k2_m13 fue ligeramente más
+rápido que A* (5.58 s frente a 6.21 s de media).
 
-- **A* alcanza la meta en** 9 de 9 corridas con N = 3, en 6 de 9 con N = 4 y en
-  0 de 9 con N = 5.
-- **Nodos expandidos por A\*:** entre 17 y 3098 con N = 3, entre 2781 y 22000
-  con N = 4, y 22000 en todas las corridas con N = 5.
-- **Tiempo de A\*:** como maximo 0.18 s con N = 3, entre 0.24 y 2.55 s con
-  N = 4, y entre 2.64 y 3.91 s con N = 5.
-- **Celdas ocupadas:** con N = 5, A* dejo de media 5.67, 6.67 y 8.33 (K = 2, 3,
-  4) y el evolutivo 2, 3 y 3.67. Con N = 3 y N = 4 ambos agentes dejaron las
-  mismas celdas en las 18 instancias.
-- **Evolutivo:** su presupuesto baja con N porque M sube (40000, 25000 y 15384
-  evaluaciones), y la media de su tiempo por celda se mantuvo entre 3.1 y
-  3.8 s (corridas individuales entre 2.94 y 4.21 s).
-  El tiempo por evaluacion crecio con M: de 0.073–0.089 ms con M = 5 a
-  0.193–0.274 ms con M = 13.
+### 4.4 Qué pasó al usar más colores
 
-**Interpretacion.** Al crecer N (y M con el), el costo de A* crece hasta agotar
-el presupuesto; con N = 5 todas las busquedas se cortan, y su calidad empeora
-respecto al evolutivo. El tiempo casi constante del evolutivo no indica que no
-le afecte el tamano: es una consecuencia del diseno del presupuesto, que se
-ajusta con `1 / M` precisamente porque cada evaluacion cuesta del orden de M
-colocaciones. Su senal de escalabilidad es el tiempo por evaluacion, que
-aumenta con M, y la calidad, que en este rango se mantiene.
+Con más colores suele ser más difícil juntar fichas iguales, así que al final
+quedan igual o más celdas ocupadas. Esto se ve sobre todo en los tableros de
+5×5. No encontramos una regla igual de clara sobre el tiempo: depende bastante
+de la partida que toque.
 
-### 3.4 Efecto de K, con N y M fijos
+### 4.5 Resumen de escalabilidad
 
-**Hechos medidos.**
+El tamaño del tablero fue el cambio que más afectó a A*. Le fue muy bien en los
+tableros pequeños, pero los grandes superaron el tiempo disponible para explorar
+todas las opciones. El evolutivo fue más lento en los casos sencillos, pero
+conservó mejores tableros finales en los grandes.
 
-- **Con N = 3:** la media de nodos de A* fue 782, 1177 y 1650 (K = 2, 3, 4), pero
-  con rangos que se solapan: 17–2274, 17–3098 y 402–2274.
-- **Con N = 4:** la proporcion de busquedas cortadas fue 0/3, 2/3 y 1/3, y la
-  media de nodos 10750, 20995 y 11647. **No es monotona en K.**
-- **Con N = 5:** A* agoto el presupuesto con cualquier K, asi que su costo
-  queda censurado en 22000 y no permite ver el efecto de K.
-- **Celdas ocupadas:** en ambos agentes no disminuyen al aumentar K. Con N = 3
-  las medias fueron 2, 2.67 y 2.67; con N = 4, 2, 3 y 3. Con N = 5 aumentan en
-  cada paso: A* dejo 5.67, 6.67 y 8.33, y el evolutivo 2, 3 y 3.67.
-- **Evolutivo:** su presupuesto no depende de K, y la media de su tiempo por
-  celda vario entre 3.1 y 3.8 s, sin tendencia clara con K.
+No separamos por completo el efecto de tener un tablero más grande del efecto
+de usar más fichas, porque ambas cosas crecieron juntas en esta batería. Las
+conclusiones se limitan a los tamaños, colores y tiempo probados.
 
-**Interpretacion.** Con mas colores hay menos fusiones posibles, y ambos
-agentes terminan con igual o mayor cantidad de celdas ocupadas. El efecto de K
-sobre la calidad nunca va en sentido contrario, y es mas marcado en el tablero
-mayor (N = 5). Sobre el **costo** de A*, en cambio, los datos no muestran un
-efecto consistente de K: es pequeno frente a la variacion entre semillas y no
-es monotono con N = 4.
+## 5. Reproducibilidad
 
-### 3.5 Que parametro domina el costo
+Una prueba es reproducible si otra persona puede usar los mismos datos y llegar
+al mismo resultado. Para lograrlo, cada partida registra su configuración, la
+semilla, el agente y el límite de tiempo. La semilla sirve para generar la misma
+instancia y, en el agente evolutivo, para repetir las mismas decisiones
+aleatorias. Además, los agentes tienen una cantidad fija de trabajo; así, una
+computadora que ejecute la misma prueba no cambia el resultado solo por ser un
+poco más rápida o más lenta.
 
-**Para A\*, dentro de este rango, domina N** (junto con M, que crece con el).
-Pasar de N = 3 a N = 5 lleva a A* de alcanzar la meta en todas las corridas a
-agotar el presupuesto en todas, y multiplica su esfuerzo al menos por 7 frente
-al maximo observado con N = 3 (22000 frente a 3098). Esta cota es inferior,
-porque con N = 5 el esfuerzo esta censurado por el presupuesto. Variar K con N y
-M fijos cambia la media de nodos como mucho por un factor de 2.1 (con N = 3),
-con rangos solapados y sin tendencia monotona con N = 4.
+Repetimos partidas con la misma semilla y los agentes entregaron la misma
+solución. Las filas de cada ejecución están en `crudo.csv`; los promedios de
+cada configuración, en `resumen.csv`; y los datos de la computadora usada, en
+`metadatos.json`, dentro de las carpetas de comparación y escalabilidad.
 
-Dos matices. Primero, como M crece con N, no podemos atribuir el efecto al
-tamano del tablero por separado de la longitud de la secuencia. Segundo, para
-el evolutivo el diseno del presupuesto fija su esfuerzo y deja su tiempo casi
-constante, asi que la pregunta de que parametro domina su costo se responde con
-el tiempo por evaluacion, que crece con M y no depende de K.
+No hace falta volver a correr los agentes para comprobar que las soluciones
+guardadas son legales. El validador reproduce las reglas del juego de manera
+independiente y revisa la cantidad de fichas y de celdas ocupadas.
 
-### 3.6 Region donde A* deja de alcanzar la meta
+Si el reloj de salvaguarda llegara a intervenir, quedaría marcado en los datos.
+Esa partida seguiría siendo válida, pero no se usaría como evidencia de que el
+resultado se repite exactamente.
 
-**Hechos medidos**, con `T = 10 s` (presupuesto de 22000 nodos):
+## 6. Limitaciones
 
-| Region | Celdas del factorial | A* alcanza la meta |
-|---|---|---|
-| N = 3, M = 5 | K = 2, 3, 4 | 9 de 9 corridas |
-| N = 4, M = 8 | K = 2 | 3 de 3 |
-| N = 4, M = 8 | K = 3 | 1 de 3 |
-| N = 4, M = 8 | K = 4 | 2 de 3 |
-| N = 5, M = 13 | K = 2, 3, 4 | 0 de 9 |
-
-La comparacion es coherente: A* alcanzo la meta en n3_k4_m14 (3 de 3) y en
-n4_k4_m8 (2 de 3), y agoto el presupuesto en las 12 corridas con N >= 4 y
-M >= 13.
-
-**Interpretacion.** La transicion ocurre en N = 4 con M = 8, donde depende de la
-instancia: la corrida mas costosa que aun alcanzo la meta necesito 19912 nodos,
-muy cerca del presupuesto. A partir de N = 5 (o de M >= 13 con N >= 4), A* deja
-de alcanzar la meta durante la busqueda en todas las corridas y recurre al
-completado posterior. Que las soluciones sigan siendo completas se debe a ese
-completado, no a la busqueda.
-
-### 3.7 El evolutivo en ese mismo regimen
-
-**Hechos medidos.** En las 25 instancias formales (ambas baterias) donde A*
-agoto el presupuesto, el evolutivo completo la secuencia siempre y dejo menos
-celdas ocupadas que A* en 21 y las mismas en 4. En las 20 instancias donde A*
-alcanzo la meta, ambos dejaron exactamente las mismas celdas. Su tiempo quedo
-entre 2.36 y 4.21 s en todas las corridas.
-
-**Interpretacion.** El evolutivo no tiene un punto de corte analogo, porque
-siempre produce un plan completo y lo mejora mientras dura su presupuesto. En
-la region donde A* degrada, el evolutivo conserva la calidad. En la region
-donde A* es optimo, lo iguala, aunque tarda mas.
-
-### 3.8 Dispersion entre semillas
-
-- **A\*:** la dispersion es grande en la region donde alcanza la meta (por
-  ejemplo 2781–19912 nodos en n4_k2_m8), porque el costo de una busqueda
-  completa depende mucho de la instancia. Es nula en esfuerzo donde agota el
-  presupuesto, y moderada en celdas ocupadas (desviacion de hasta 1.15, en
-  n5_k3_m13).
-- **Evolutivo:** su esfuerzo no varia entre semillas por construccion. Su
-  desviacion en celdas ocupadas fue como mucho de 0.58, y en tiempo de 0.42 s.
-
-## 4. Reproducibilidad
-
-- **Prueba de determinismo con presupuesto.** Se hicieron 4 instancias × 2
-  agentes × 5 repeticiones, en dos sesiones separadas. En cada grupo hubo un
-  solo hash de solucion y el mismo esfuerzo, y en ningun caso actuo la
-  salvaguarda. Los resultados estan en
-  `resultados/experimentos/determinismo_presupuesto_sesion1/` y
-  `determinismo_presupuesto_sesion2/`.
-- **Verificacion cruzada.** Las configuraciones n4_k4_m8 y n5_k2_m13 aparecen en
-  ambas baterias con las mismas semillas, es decir las mismas instancias
-  corridas en dos momentos distintos. Las 12 corridas coinciden en solucion y
-  esfuerzo.
-- **Revalidacion.** Todas las soluciones formales se pueden revalidar sin volver
-  a ejecutar los agentes: `python -m experimentos.revalidar comparacion` y
-  `python -m experimentos.revalidar escalabilidad`.
-- **Evidencia historica, fuera de los resultados formales.** Las corridas
-  hechas con el criterio de paro anterior (por reloj) se conservan en
-  `resultados/experimentos/comparacion_criterio_reloj/`,
-  `escalabilidad_criterio_reloj/`, `determinismo/`,
-  `determinismo_diagnostico/` y `piloto/`.
-
-## 5. Limitaciones
-
-- **El esfuerzo de A\* esta censurado.** Cuando agota el presupuesto, 22000
-  nodos es una cota inferior de lo que habria necesitado, no su costo real.
-- **El tiempo y el esfuerzo del evolutivo los fija el presupuesto**, no la
-  dificultad de la instancia. Su escalabilidad se lee en el tiempo por
-  evaluacion y en la calidad.
-- **N y M varian juntos en la escalabilidad** (rho fijo). No se puede separar el
-  efecto del tablero del de la longitud de la secuencia.
-- **Rango pequeno.** Tres semillas por configuracion, K entre 2 y 4, y N entre 3
-  y 5 en la escalabilidad (hasta 6 en la comparacion). Las conclusiones no se
-  extienden fuera de ese rango.
-- **Ninguna derrota.** Todas las partidas colocaron las M fichas, asi que el
-  primer criterio del concurso no diferencio a los agentes en estas instancias.
-- **Una sola maquina.** Los presupuestos se calibraron y se verificaron en ella.
-  En una maquina bastante mas lenta la salvaguarda del reloj podria actuar; si
-  lo hiciera, quedaria registrado en `clock_safeguard` y esa corrida no seria
-  reproducible.
-- **El piloto uso el criterio anterior.** Las seis configuraciones se eligieron
-  con el paro por reloj. El presupuesto se fijo para no cortar ninguna meta
-  observada, de modo que la frontera entre regiones se conserva, pero el
-  piloto no se repitio.
+- **Rango de pruebas pequeño.** En escalabilidad probamos tableros de 3×3 a
+  5×5, entre 2 y 4 colores y tres semillas por configuración. La comparación
+  incluye además un caso de 6×6. Esto es suficiente para ver una tendencia,
+  pero no para asegurar que se mantenga con tableros mucho mayores, más colores
+  o muchas más partidas.
+- **No evaluamos derrotas.** Las instancias se construyeron para que siempre
+  hubiera una forma de colocar toda la secuencia. De hecho, ambos agentes
+  colocaron todas las fichas en las pruebas formales. Por eso pudimos comparar
+  bien cuántas celdas quedaban ocupadas, pero no sabemos cuál agente manejaría
+  mejor partidas que no se pueden completar.
+- **El límite de tiempo influye en la comparación.** A* recibe como máximo
+  22000 expansiones y, si no termina, completa la partida con una regla simple.
+  El evolutivo siempre parte de propuestas completas y las mejora mientras dura
+  su presupuesto. Por tanto, los resultados describen a ambos agentes con el
+  límite de 10 segundos y estos presupuestos, no una ventaja universal de uno
+  sobre el otro.
+- **Exploración de parámetros acotada.** El empate entre las configuraciones
+  exploradas y la prueba de más presupuesto se observó en tres configuraciones
+  y tres semillas. Sirven para justificar que los valores fijos no muestran una
+  diferencia observable en esas instancias, pero no para declarar equivalentes
+  todas las configuraciones ni para descartar mejoras en casos más difíciles.
+- **Una sola computadora.** Los tiempos se midieron en una sola máquina y son
+  útiles para comparar estas corridas entre sí. En otra computadora, el tiempo
+  en segundos puede cambiar. El presupuesto fijo reduce ese efecto sobre la
+  solución elegida, pero no convierte los tiempos medidos en una medida válida
+  para cualquier equipo.

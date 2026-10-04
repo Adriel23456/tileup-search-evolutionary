@@ -88,7 +88,7 @@ def test_el_agente_produce_una_solucion_aceptada_por_el_validador(tmp_path):
     """La solución elegida nunca contiene reparaciones virtuales."""
     instancia = LectorInstancia().leer_desde_archivo(RUTA_INSTANCIA_EJEMPLO)
     ruta_salida = os.path.join(str(tmp_path), "evolutivo.sol")
-    agente = AgenteEvolutivo(semilla=7, tamano_poblacion=12)
+    agente = AgenteEvolutivo(semilla=7)
 
     resultado = EjecutorAgente().ejecutar(
         agente=agente,

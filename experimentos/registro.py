@@ -53,14 +53,14 @@ class RegistroExperimento:
 
         if os.path.isfile(self.ruta_crudo) is True and sobrescribir is False:
             raise ErrorExperimentoExistente(
-                "Ya existe " + self.ruta_crudo + ". Use --sobrescribir para "
-                "reemplazarlo."
+                "Ya existe " + self.ruta_crudo
+                + ". Use --sobrescribir para reemplazarlo."
             )
 
         os.makedirs(directorio, exist_ok=True)
 
         with open(self.ruta_crudo, "w", encoding="utf-8", newline="") as archivo:
-            csv.writer(archivo).writerow(self.columnas)
+            csv.writer(archivo, lineterminator="\n").writerow(self.columnas)
 
         with open(self.ruta_registros, "w", encoding="utf-8", newline="\n"):
             pass
@@ -68,7 +68,9 @@ class RegistroExperimento:
     def agregar(self, fila: Dict[str, str], detalle: Dict) -> None:
         """Agrega una corrida al CSV crudo y su detalle a los registros."""
         with open(self.ruta_crudo, "a", encoding="utf-8", newline="") as archivo:
-            escritor = csv.DictWriter(archivo, fieldnames=self.columnas)
+            escritor = csv.DictWriter(
+                archivo, fieldnames=self.columnas, lineterminator="\n"
+            )
             escritor.writerow(fila)
 
         with open(self.ruta_registros, "a", encoding="utf-8", newline="\n") as archivo:

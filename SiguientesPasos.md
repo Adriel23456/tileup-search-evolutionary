@@ -12,7 +12,7 @@ Inteligencia Artificial (IC-6200) - Instituto Tecnologico de Costa Rica
 | Motor y validador | 12 | Completo |
 | Agente de busqueda | 16 | Completo |
 | Generador de instancias (Etapa A) | - | Completo |
-| Agente evolutivo | 16 | Implementado; falta el CSV de calibracion de parametros |
+| Agente evolutivo | 16 | Implementado; parámetros fijos documentados en README |
 | Comparacion experimental | 14 | Completo (Etapa C) |
 | Escalabilidad (grupo de 3) | 12 | Completo (Etapa C) |
 | README e informe | 12 | README completo; `INFORME.md` con la parte experimental; faltan las formulaciones (Etapa D) |
@@ -85,24 +85,21 @@ resulto esa partida.
 
 **Lo que la rubrica exige documentar.** Representacion del individuo, funcion
 de aptitud, mecanismo de seleccion, operadores de variacion, politica de
-reemplazo y criterio de paro. Cada uno con sus valores y, sobre todo, con el
-procedimiento por el cual se fijaron. Un barrido de parametros guardado en un
-CSV es la diferencia entre Excelente y Bueno en 16 puntos.
+reemplazo y criterio de paro. La entrega documenta los valores de diseño y los
+resultados de las baterías formales; no afirma un barrido de calibración
+reproducible.
 
 **Trampa a evitar.** El enunciado califica Deficiente un evolutivo que
 reimplemente una busqueda exhaustiva bajo otro nombre. La evaluacion de
 aptitud debe simular una partida, no explorar sucesores.
 
 **Cuando esta listo.** `python main.py resolver --agente evolutivo` produce
-soluciones que el validador acepta, es determinista por semilla, y existe el
-CSV de calibracion de parametros.
+soluciones que el validador acepta y es determinista por semilla.
 
-**Como esta.** Implementado y validado en todas las baterias. Durante la Etapa
-C su criterio de paro paso de reloj a presupuesto determinista de evaluaciones
-(ver README, *Criterio de paro y determinismo*). **Pendiente:** el CSV de
-calibracion de los pesos de aptitud, el tamano de poblacion y la probabilidad
-de cruce. El runner `experimentos/bateria.py` puede reutilizarse para ese
-barrido.
+**Como esta.** Implementado y validado en las baterías formales. Durante la
+Etapa C su criterio de paro pasó de reloj a presupuesto determinista de
+evaluaciones (ver README, *Criterio de paro y determinismo*). La población y los
+demás parámetros se mantienen como decisiones de diseño.
 
 ---
 

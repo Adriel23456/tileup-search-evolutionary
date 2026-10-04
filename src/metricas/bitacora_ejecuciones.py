@@ -62,7 +62,7 @@ class BitacoraEjecuciones:
         fila.append(archivo_solucion)
 
         with open(self._ruta_bitacora, "a", encoding="utf-8", newline="") as archivo:
-            escritor = csv.writer(archivo)
+            escritor = csv.writer(archivo, lineterminator="\n")
             escritor.writerow(fila)
 
     def _asegurar_archivo(self) -> None:
@@ -78,5 +78,5 @@ class BitacoraEjecuciones:
         encabezado = list(ENCABEZADO_COMPARACION) + list(COLUMNAS_ADICIONALES)
 
         with open(self._ruta_bitacora, "w", encoding="utf-8", newline="") as archivo:
-            escritor = csv.writer(archivo)
+            escritor = csv.writer(archivo, lineterminator="\n")
             escritor.writerow(encabezado)

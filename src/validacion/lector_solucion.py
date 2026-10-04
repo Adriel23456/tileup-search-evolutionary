@@ -76,7 +76,7 @@ class LectorSolucion:
     def leer_desde_texto(self, contenido: str,
                          nombre: str = "sin_nombre") -> SolucionLeida:
         """Lee e interpreta una solucion a partir de su contenido en texto."""
-        
+
         if contenido.startswith(MARCA_DE_ORDEN_DE_BYTES) is True:
             contenido = contenido[len(MARCA_DE_ORDEN_DE_BYTES):]
 

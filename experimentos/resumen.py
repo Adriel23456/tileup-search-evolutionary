@@ -178,7 +178,9 @@ def main(argumentos: Optional[List[str]] = None) -> int:
 
     ruta_resumen = os.path.join(directorio, "resumen.csv")
     with open(ruta_resumen, "w", encoding="utf-8", newline="") as archivo:
-        escritor = csv.DictWriter(archivo, fieldnames=COLUMNAS_RESUMEN)
+        escritor = csv.DictWriter(
+            archivo, fieldnames=COLUMNAS_RESUMEN, lineterminator="\n"
+        )
         escritor.writeheader()
         escritor.writerows(resumen)
 

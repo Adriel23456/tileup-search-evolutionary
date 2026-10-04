@@ -311,6 +311,13 @@ python -m experimentos.graficas escalabilidad
 `--sobrescribir`. `revalidar`, `resumen` y `graficas` solo leen el CSV crudo:
 no vuelven a ejecutar los agentes.
 
+### Parámetros del evolutivo
+
+La población de 20 individuos, el torneo de 3, el cruce de 0.70 y los pesos
+100/10/25 son decisiones de diseño fijas para esta entrega. No se afirma que
+estos parámetros hayan sido calibrados: las baterías formales evalúan el agente
+con estos valores y no usan resultados de optimización.
+
 Donde quedan los resultados:
 
 | Ruta | Contenido |
@@ -341,7 +348,7 @@ Columnas principales de `crudo.csv`:
 | `solution_path`, `solution_sha256` | Solucion producida y su huella, para comprobar reproducibilidad. |
 
 La carpeta `resultados/experimentos/` conserva ademas evidencia historica que
-**no** forma parte de los resultados formales:
+**no** forman parte de los resultados formales:
 
 - el piloto con el que se eligieron las configuraciones (`piloto/`);
 - las pruebas de determinismo con el criterio de paro anterior (`determinismo/`,
@@ -654,7 +661,7 @@ individuo solo cuando lo supera.
 
 ### Poblacion, paro y esfuerzo
 
-La poblacion inicial tiene 30 individuos. Primero se construye un plan legal
+La poblacion inicial tiene 20 individuos. Primero se construye un plan legal
 guiado por fusiones para disponer inmediatamente de una solucion entregable;
 los restantes se construyen con elecciones legales aleatorias derivadas de la
 semilla.
@@ -666,8 +673,10 @@ El agente crea y evalua hijos hasta agotar un presupuesto determinista de
 inicializacion como en el bucle evolutivo. El reloj, al 98 % de `T`, queda solo
 como salvaguarda del limite obligatorio. La medida de esfuerzo es
 `evaluaciones_aptitud`: una clonacion que reutiliza una aptitud no incrementa
-este contador. Los pesos, el tamano de poblacion y la probabilidad de cruce
-son valores iniciales que deben calibrarse experimentalmente.
+este contador. La poblacion de 20 individuos, el torneo de 3, el cruce de 0.70 y
+los pesos 100/10/25 son decisiones de diseno fijas para esta entrega, no
+parametros que presentemos como calibrados. Las baterias formales documentan su
+comportamiento en las instancias evaluadas.
 
 ## Criterio de paro y determinismo
 
@@ -691,7 +700,7 @@ obligatorio:
 
 Mientras la salvaguarda no actua, la misma entrada ejecuta exactamente el mismo
 trabajo y produce la misma solucion. Si llegara a actuar, por ejemplo en una
-maquina mucho mas lenta que la usada para calibrar, el agente lo avisa por
+maquina mucho mas lenta que aquella donde se midieron las corridas, el agente lo avisa por
 salida estandar y la bateria experimental lo registra en la columna
 `clock_safeguard`. No se afirma un determinismo valido para cualquier maquina
 imaginable: lo que se demuestra es que, con estos presupuestos, las corridas

@@ -1,11 +1,11 @@
 {
   "experiment": "escalabilidad",
   "configuracion": "experimentos/configuracion/escalabilidad.json",
-  "sha256_configuracion": "261dccd8c9c3ca824c3f6bc91835232ccd686eeb8132e194ee9111a98884d699",
+  "sha256_configuracion": "ed42836574c2edf95d4ab7f97a6c0be2008e150748ed5bd01c645d2389d6c5b1",
   "sha256_guiones": {
-    "experimentos/bateria.py": "59d9f6a3113947d259a461dc34ee75f548efbf3834c8efeceefce1144ab833f4",
-    "experimentos/corrida.py": "01de0757dec2a4085ab5abbedcfd1663dee31ea0d01a7b3dcb28fc827f7d2fae",
-    "experimentos/registro.py": "140c3d44d82f08b371aea9ae6d7f59a997967e44a5d76caf4f946de2cdede38a"
+    "experimentos/bateria.py": "17ada1331a15ebef2287e24f0b7127d454b4f1fd647734c6147bced295bb4db6",
+    "experimentos/corrida.py": "637aadfce076e995be1f12651021f2fa56eac8b41bd8abb39646b2c52a5b6a6d",
+    "experimentos/registro.py": "3052290b5e5a247f865474fff90219544ddf68e5f4bd590bddac0afdb459bfd8"
   },
   "agentes": [
     "busqueda_astar",
@@ -74,14 +74,14 @@
     }
   ],
   "entorno": {
-    "commit": "f0be0f8afa71aaf06f7392e52ae3d21fd63013e5",
+    "commit": "f0be0e8f6d7df969e5017e254b973148749fbe42",
     "cambios_sin_confirmar": true,
-    "python": "3.14.7",
-    "plataforma": "Windows-11-10.0.26200-SP0",
-    "procesador": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",
-    "nucleos_logicos": 32,
-    "fecha": "2026-09-30T15:01:43"
+    "python": "3.12.3",
+    "plataforma": "Linux-7.0.0-34-generic-x86_64-with-glibc2.39",
+    "procesador": "x86_64",
+    "nucleos_logicos": 12,
+    "fecha": "2026-10-04T15:20:37"
   },
-  "inicio": "2026-09-30T15:01:43",
-  "fin": "2026-09-30T15:04:20"
+  "inicio": "2026-10-04T15:20:37",
+  "fin": "2026-10-04T15:24:46"
 }

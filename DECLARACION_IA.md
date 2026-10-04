@@ -11,7 +11,7 @@ herramientas de IA, en que partes y que se verifico de forma manual.
 | Integrante | Carne | Uso de IA declarado |
 |---|---|---|
 | Adriel S. Chaves Salazar | 2021031465 | Si, detallado abajo |
-| Daniel Duarte Cordero | 2022012866 | Pendiente de completar |
+| Daniel Duarte Cordero | 2022012866 | Sí, detallado abajo |
 | Sebastian Hernandez Bonilla | 2022093651 | Si, Etapas A y C, detallado abajo |
 
 Cada integrante completa su propia seccion. Un apartado vacio significa que
@@ -22,6 +22,7 @@ ese integrante todavia no ha declarado su uso, no que no lo haya habido.
 | Herramienta | Integrante | Periodo |
 |---|---|---|
 | Claude (Anthropic), interfaz web | Adriel S. Chaves Salazar | Semanas 8 a 10 |
+| Codex (OpenAI), asistente de programación | Daniel Duarte Cordero | Diseño, implementación y redacción |
 | Claude Code (Anthropic), agente de programacion | Sebastian Hernandez Bonilla | Etapas A y C |
 
 ## Adriel S. Chaves Salazar
@@ -184,7 +185,43 @@ el estudiante.
 
 ## Daniel Duarte Cordero
 
-Pendiente de completar por el integrante.
+### Resumen
+
+Utilicé Codex como tutor, asistente de programación y apoyo para redactar el
+informe. El proyecto ya tenía desarrollados el motor del juego, el validador,
+el agente de búsqueda y el generador de instancias. Primero pedí una explicación
+general de esa base para entender cómo estaba organizado el proyecto y en qué
+partes debía integrar mi trabajo.
+
+### Desarrollo del agente evolutivo
+
+La idea y las decisiones principales del agente fueron mías: representar cada
+propuesta de partida con `M` genes, uno por ficha, donde cada gen indica una
+coordenada del tablero; decidir qué aspectos debía premiar o penalizar la
+función de aptitud; y proponer una mutación guiada para favorecer jugadas que
+permitieran fusiones. También buscaba que el agente aprovechara mejor el tiempo
+disponible. En esa conversación, Codex sugirió mantener siempre una solución
+legal completa desde el inicio y mejorarla poco a poco. Esa sugerencia llevó a
+organizar el agente como un evolutivo de estado estacionario.
+
+Con esas ideas acordadas, Codex ayudó a implementarlas en el código. Revisé el
+resultado durante el desarrollo y utilicé el asistente para ejecutar pruebas,
+detectar problemas y resumir los resultados de las corridas. Las decisiones
+finales sobre el comportamiento esperado y la aceptación de los cambios
+quedaron bajo mi supervisión.
+
+### Informe y resultados
+
+Para el informe, primero anoté los temas que quería explicar: el proceso de
+desarrollo, las observaciones de las pruebas y las conclusiones. A partir de
+esas notas preparé un borrador y usé Codex para mejorar la redacción, ordenar
+las explicaciones y elaborar las gráficas de los resultados experimentales.
+Revisé las interpretaciones y pedí cambios cuando el nivel de detalle o la
+explicación no coincidían con lo que quería comunicar.
+
+La inteligencia artificial sirvió como apoyo para entender, programar,
+comprobar y comunicar el trabajo. La definición de la estrategia, la revisión
+de los resultados y las decisiones finales fueron responsabilidad mía.
 
 ## Sebastian Hernandez Bonilla
 

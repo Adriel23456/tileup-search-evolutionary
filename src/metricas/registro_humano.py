@@ -55,7 +55,7 @@ class RegistroHumano:
         ]
 
         with open(self._ruta_bitacora, "a", encoding="utf-8", newline="") as archivo:
-            escritor = csv.writer(archivo)
+            escritor = csv.writer(archivo, lineterminator="\n")
             escritor.writerow(fila)
 
     def _asegurar_archivo(self) -> None:
@@ -69,5 +69,5 @@ class RegistroHumano:
             return
 
         with open(self._ruta_bitacora, "w", encoding="utf-8", newline="") as archivo:
-            escritor = csv.writer(archivo)
+            escritor = csv.writer(archivo, lineterminator="\n")
             escritor.writerow(ENCABEZADO_BITACORA)

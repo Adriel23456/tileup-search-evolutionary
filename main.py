@@ -10,7 +10,6 @@ sus propios argumentos:
     instancia    Revisa el formato de un archivo de instancia.
     generar      Genera un archivo de instancia resoluble.
     agentes      Lista los agentes disponibles.
-    backend      Muestra el backend de computo detectado.
 
 Ejemplos:
     python main.py resolver --instancia datos\\instancias\\ejemplo_n4_k3_m6.txt ^
@@ -32,7 +31,10 @@ partir del registro de subcomandos y despachar hacia el que corresponda.
 import argparse
 import sys
 
-from src.cli.codigos_salida import CODIGO_SALIDA_ERROR_ENTRADA
+from src.cli.codigos_salida import (
+    CODIGO_SALIDA_ERROR_ENTRADA,
+    CODIGO_SALIDA_EXITO,
+)
 from src.cli.registro_comandos import RegistroComandos
 
 
@@ -100,14 +102,14 @@ def mostrar_ayuda_completa(registro: RegistroComandos,
         comando.configurar_argumentos(subanalizador)
         subanalizador.print_help()
 
-    return CODIGO_SALIDA_ERROR_ENTRADA
+    return CODIGO_SALIDA_EXITO
 
 
-def main() -> int:
+def main(argumentos=None) -> int:
     """Interpreta los argumentos y despacha hacia el subcomando indicado."""
     registro = RegistroComandos()
     analizador = construir_analizador_argumentos(registro)
-    argumentos = analizador.parse_args()
+    argumentos = analizador.parse_args(argumentos)
 
     if argumentos.ayuda_completa is True:
         return mostrar_ayuda_completa(registro, analizador)

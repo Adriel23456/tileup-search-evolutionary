@@ -387,7 +387,9 @@ def _distintos(valores) -> List[str]:
 def _escribir_csv(ruta: str, columnas: List[str], filas: List[Dict[str, str]]) -> None:
     """Escribe una tabla completa en CSV."""
     with open(ruta, "w", encoding="utf-8", newline="") as archivo:
-        escritor = csv.DictWriter(archivo, fieldnames=columnas)
+        escritor = csv.DictWriter(
+            archivo, fieldnames=columnas, lineterminator="\n"
+        )
         escritor.writeheader()
         escritor.writerows(filas)
 
