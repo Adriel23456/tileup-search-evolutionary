@@ -1,0 +1,48 @@
+{
+  "base": {
+    "tamano_poblacion": 20,
+    "tamano_torneo": 3,
+    "probabilidad_cruce": 0.7
+  },
+  "alternativas": {
+    "tamano_poblacion": [
+      10,
+      40
+    ],
+    "tamano_torneo": [
+      2,
+      5
+    ],
+    "probabilidad_cruce": [
+      0.5,
+      0.9
+    ]
+  },
+  "instancias": [
+    [
+      4,
+      3,
+      12
+    ],
+    [
+      5,
+      3,
+      20
+    ],
+    [
+      6,
+      4,
+      30
+    ]
+  ],
+  "semillas_pareadas": [
+    101,
+    102,
+    103
+  ],
+  "limite_tiempo_s": 10.0,
+  "regla": "menor media de ocupadas; empate: base; luego menor tiempo",
+  "ganadora": "base",
+  "python": "3.14.6",
+  "plataforma": "Windows-11-10.0.26300-SP0"
+}

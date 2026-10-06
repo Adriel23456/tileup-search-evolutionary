@@ -9,8 +9,8 @@
 # evaluador.
 #
 # El guion crea el entorno virtual, instala las dependencias, ejecuta las
-# pruebas y resuelve la instancia de ejemplo para demostrar que el sistema
-# funciona de principio a fin.
+# pruebas, resuelve la instancia de ejemplo con los dos agentes del enunciado
+# y valida ambas soluciones.
 
 $ErrorActionPreference = "Stop"
 
@@ -21,8 +21,9 @@ $PythonDelEntorno = ".venv\Scripts\python.exe"
 # Instancia con la que se demuestra el flujo completo.
 $InstanciaDemo = "datos\instancias\ejemplo_n4_k3_m6.txt"
 
-# Solucion que produce la demostracion.
-$SolucionDemo = "datos\soluciones\busqueda_astar\ejemplo_n4_k3_m6__busqueda_astar__s0.sol"
+# Soluciones que produce la demostracion, una por agente.
+$SolucionBusqueda = "datos\soluciones\busqueda_astar\ejemplo_n4_k3_m6__busqueda_astar__s0.sol"
+$SolucionEvolutivo = "datos\soluciones\evolutivo\ejemplo_n4_k3_m6__evolutivo__s0.sol"
 
 
 function Escribir-Titulo {
@@ -35,7 +36,7 @@ function Escribir-Titulo {
 }
 
 
-Escribir-Titulo "1 de 5. Creando el entorno virtual"
+Escribir-Titulo "1 de 6. Creando el entorno virtual"
 
 if (Test-Path ".venv") {
     Write-Host "El entorno virtual ya existe, se reutiliza."
@@ -45,14 +46,14 @@ if (Test-Path ".venv") {
 }
 
 
-Escribir-Titulo "2 de 5. Instalando dependencias"
+Escribir-Titulo "2 de 6. Instalando dependencias"
 
 & $PythonDelEntorno -m pip install --upgrade pip --quiet
 & $PythonDelEntorno -m pip install -r requirements.txt --quiet
 Write-Host "Dependencias instaladas."
 
 
-Escribir-Titulo "3 de 5. Ejecutando las pruebas automatizadas"
+Escribir-Titulo "3 de 6. Ejecutando las pruebas automatizadas"
 
 & $PythonDelEntorno -m pytest pruebas -q
 
@@ -62,9 +63,9 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 
-Escribir-Titulo "4 de 5. Resolviendo la instancia de ejemplo"
+Escribir-Titulo "4 de 6. Resolviendo la instancia de ejemplo con ambos agentes"
 
-& $PythonDelEntorno main.py resolver --instancia $InstanciaDemo --agente busqueda_astar --semilla 0 --limite-tiempo 10
+& $PythonDelEntorno main.py resolver --instancia $InstanciaDemo --agentes busqueda_astar evolutivo --semilla 0 --limite-tiempo 10
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "La resolucion fallo. Se detiene la preparacion." -ForegroundColor Red
@@ -72,19 +73,29 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 
-Escribir-Titulo "5 de 5. Validando la solucion producida"
+Escribir-Titulo "5 de 6. Validando la solucion de busqueda_astar"
 
-& $PythonDelEntorno main.py validar --instancia $InstanciaDemo --solucion $SolucionDemo --exigir-completa
+& $PythonDelEntorno main.py validar --instancia $InstanciaDemo --solucion $SolucionBusqueda --exigir-completa
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "El validador rechazo la solucion." -ForegroundColor Red
+    Write-Host "El validador rechazo la solucion de busqueda_astar." -ForegroundColor Red
+    exit 1
+}
+
+
+Escribir-Titulo "6 de 6. Validando la solucion del evolutivo"
+
+& $PythonDelEntorno main.py validar --instancia $InstanciaDemo --solucion $SolucionEvolutivo --exigir-completa
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "El validador rechazo la solucion del evolutivo." -ForegroundColor Red
     exit 1
 }
 
 
 Escribir-Titulo "Listo"
 
-Write-Host "El sistema esta preparado y verificado."
+Write-Host "El sistema esta preparado y verificado con ambos agentes."
 Write-Host ""
 Write-Host "Para usarlo, invoque el interprete del entorno de forma directa:"
 Write-Host "    $PythonDelEntorno main.py --ayuda-completa"

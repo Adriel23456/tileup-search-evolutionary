@@ -37,7 +37,7 @@ FRACCION_MARGEN_TIEMPO = 0.02
 # Colocaciones simuladas por cada segundo del límite de tiempo. Fija el
 # presupuesto determinista de evaluaciones: cada evaluación simula M
 # colocaciones, así que el presupuesto es floor(COLOCACIONES * T / M). Se
-# se fijó a partir de las corridas registradas; el límite se redondeó a 20000
+# fijó a partir de las corridas registradas; el límite se redondeó a 20000
 # colocaciones por segundo de T. Ver README, sección del criterio de paro.
 COLOCACIONES_POR_SEGUNDO_DE_LIMITE = 20000
 

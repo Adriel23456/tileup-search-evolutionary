@@ -26,15 +26,25 @@ py --version
 
 ## Instalacion
 
+Una sola orden crea el entorno virtual, instala las dependencias, corre las
+pruebas, resuelve la instancia de ejemplo con los dos agentes y valida ambas
+soluciones:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File setup.ps1
+```
+
+El parametro `-ExecutionPolicy Bypass` evita el error
+`running scripts is disabled on this system` sin cambiar la configuracion de la
+maquina. Si se prefiere hacerlo paso a paso:
+
 ```powershell
 py -3 -m venv .venv
 .venv\Scripts\python.exe -m pip install --upgrade pip
 .venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-Llamar al ejecutable del entorno de forma directa evita el error
-`running scripts is disabled on this system` que PowerShell produce con su
-politica de ejecucion por defecto. Si prefiere activar el entorno:
+Para activar el entorno:
 
 ```powershell
 Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
@@ -274,10 +284,11 @@ de la semilla y verifican con el validador que la solucion producida es legal.
 
 ## Experimentacion
 
-Dos baterias formales, descritas en archivos de configuracion versionados.
-Todas las corridas pasan por la linea de comandos real (`generar`, `resolver`,
-`validar`); los guiones de `experimentos/` no reimplementan nada del juego.
-Los resultados y su interpretacion estan en `INFORME.md`.
+Dos baterias formales y una calibracion, descritas en archivos de configuracion
+o guiones versionados. Todas las corridas de las baterias pasan por la linea de
+comandos real (`generar`, `resolver`, `validar`); los guiones de `experimentos/`
+no reimplementan nada del juego. Los resultados y su interpretacion estan en
+`INFORME.md`.
 
 | Bateria | Objetivo | Configuraciones | Corridas |
 |---|---|---|---|
@@ -305,33 +316,72 @@ python -m experimentos.resumen comparacion
 python -m experimentos.resumen escalabilidad
 python -m experimentos.graficas comparacion
 python -m experimentos.graficas escalabilidad
+python -m experimentos.calibracion_evolutivo
 ```
 
-`bateria` no sobrescribe un `crudo.csv` existente salvo que se agregue
-`--sobrescribir`. `revalidar`, `resumen` y `graficas` solo leen el CSV crudo:
-no vuelven a ejecutar los agentes.
+`bateria` y `calibracion_evolutivo` no sobrescriben un `crudo.csv` existente
+salvo que se agregue `--sobrescribir`; hacerlo reemplaza resultados
+versionados, asi que solo debe hacerse a proposito. `revalidar`, `resumen` y
+`graficas` solo leen el CSV crudo: no vuelven a ejecutar los agentes.
 
-### Parámetros del evolutivo
+### Calibracion del evolutivo
 
-La población de 20 individuos, el torneo de 3, el cruce de 0.70 y los pesos
-100/10/25 son decisiones de diseño fijas para esta entrega. No se afirma que
-estos parámetros hayan sido calibrados: las baterías formales evalúan el agente
-con estos valores y no usan resultados de optimización.
+Los parametros del agente evolutivo (tamano de poblacion, tamano de torneo y
+probabilidad de cruce) se someten a un barrido de un parametro a la vez.
 
-Donde quedan los resultados:
+Procedimiento, fijado antes de ver los resultados:
+
+1. Se parte de la configuracion base: poblacion 20, torneo 3, cruce 0.70. Estos
+   valores se habian fijado como decision de diseno antes de calibrar.
+2. Se evalua la base y seis variantes. Cada variante cambia un solo parametro:
+   poblacion 10 o 40, torneo 2 o 5, cruce 0.50 o 0.90.
+3. Todas se corren sobre tres instancias de calibracion, con configuraciones
+   (N, K, M) = (4,3,12), (5,3,20) y (6,4,30), que no coinciden con ninguna de
+   las baterias formales. Semillas pareadas 101, 102 y 103 y `T = 10 s`.
+   Son 7 × 3 × 3 = 63 corridas.
+4. Gana la configuracion con menor media de celdas ocupadas. Ante empate gana la
+   base y, entre variantes empatadas, la de menor tiempo medio.
+
+Los pesos de la aptitud (100/10/25) no se barren: replican el orden del
+concurso, primero fichas colocadas y luego celdas ocupadas.
+
+Resultado: las 63 corridas fueron validas por el validador independiente y
+ninguna activo la salvaguarda del reloj.
+
+| Configuracion | Celdas ocupadas (media ± desv.) | Min-max | Tiempo medio |
+|---|---|---|---|
+| base (20 / 3 / 0.70) | 3.33 ± 0.50 | 3-4 | 4.16 s |
+| poblacion = 10 | 3.33 ± 0.50 | 3-4 | 4.24 s |
+| poblacion = 40 | 3.33 ± 0.50 | 3-4 | 4.25 s |
+| torneo = 2 | 3.33 ± 0.50 | 3-4 | 4.21 s |
+| torneo = 5 | 3.33 ± 0.50 | 3-4 | 4.15 s |
+| cruce = 0.50 | 3.44 ± 0.73 | 3-5 | 4.21 s |
+| cruce = 0.90 | 3.44 ± 0.73 | 3-5 | 4.12 s |
+
+La configuracion base resulto ganadora y se conservo. Las cinco configuraciones
+de poblacion y torneo empataron con ella, y la diferencia de las de cruce
+proviene de dos corridas. El barrido muestra que, en estas instancias, el agente
+es poco sensible a los tres parametros; no demuestra que la base sea optima. No
+explora interacciones entre parametros y cada configuracion se evaluo con nueve
+corridas. Al conservarse los valores, no fue necesario rehacer las baterias
+formales.
+
+### Donde quedan los resultados
 
 | Ruta | Contenido |
 |---|---|
 | `experimentos/configuracion/*.json` | Configuracion de cada bateria: configuraciones, semillas, agentes y limite. |
 | `datos/instancias/<bateria>_s<s>_n<N>_k<K>_m<M>.txt` | Instancias generadas. |
+| `datos/instancias/calibracion_s<s>_n<N>_k<K>_m<M>.txt` | Instancias de la calibracion del evolutivo. |
 | `datos/soluciones/<agente>/<instancia>__<agente>__s<s>.sol` | Soluciones producidas. |
 | `resultados/experimentos/<bateria>/crudo.csv` | Una fila por corrida. **Es la fuente primaria de verdad.** |
 | `resultados/experimentos/<bateria>/resumen.csv` | Por configuracion y agente: media, desviacion estandar, minimo y maximo entre semillas. |
 | `resultados/experimentos/<bateria>/registros.jsonl` | Comandos, stdout y stderr completos de cada corrida. |
 | `resultados/experimentos/<bateria>/metadatos.json` | Commit, maquina, Python y huellas de la configuracion y de los guiones. |
 | `resultados/experimentos/<bateria>/graficas/*.png` | Graficas generadas desde el CSV crudo. |
+| `resultados/experimentos/calibracion_evolutivo/` | `crudo.csv` (una fila por corrida), `resumen.csv` (por configuracion) y `metadatos.json` de la calibracion. |
 
-Columnas principales de `crudo.csv`:
+Columnas principales de `crudo.csv` de las baterias:
 
 | Columna | Significado |
 |---|---|
@@ -348,7 +398,7 @@ Columnas principales de `crudo.csv`:
 | `solution_path`, `solution_sha256` | Solucion producida y su huella, para comprobar reproducibilidad. |
 
 La carpeta `resultados/experimentos/` conserva ademas evidencia historica que
-**no** forman parte de los resultados formales:
+**no** forma parte de los resultados formales:
 
 - el piloto con el que se eligieron las configuraciones (`piloto/`);
 - las pruebas de determinismo con el criterio de paro anterior (`determinismo/`,
@@ -443,6 +493,7 @@ soluciones y el nombre de la heuristica digan siempre lo mismo.
 
 ```text
 main.py            Punto de entrada unico, con seis subcomandos.
+setup.ps1          Preparacion y verificacion del entorno en una sola orden.
 
 src/dominio/       Reglas puras del juego: ficha, tablero, estado y motor.
 src/instancias/    Lectura, escritura y generacion del formato de entrada.
@@ -457,8 +508,8 @@ src/gui/           Ventana de juego humano.
 
 pruebas/           Pruebas unitarias y de integracion.
 
-experimentos/      Guiones de las baterias experimentales y sus configuraciones.
-INFORME.md         Resultados e interpretacion de los experimentos.
+experimentos/      Guiones de las baterias, la calibracion y sus configuraciones.
+INFORME.md         Formulacion de los agentes, calibracion y resultados.
 ```
 
 Flujo de datos:
@@ -472,6 +523,8 @@ datos/soluciones/busqueda_dijkstra/  SALIDA de A* con h = 0.
 datos/soluciones/evolutivo/          SALIDA del agente evolutivo.
 resultados/humano/                   Bitacora de partidas humanas.
 resultados/experimentos/<bateria>/   Resultados de cada bateria experimental.
+resultados/experimentos/calibracion_evolutivo/
+                                     Resultados de la calibracion del evolutivo.
 resultados/experimentos/comparacion_agentes.csv
                                      Registro historico de corridas sueltas.
 ```
@@ -634,7 +687,7 @@ menor distancia Manhattan al gen original y, finalmente, menor fila y
 columna. La reparacion no modifica el cromosoma ni puede aparecer en la
 solucion entregada.
 
-La aptitud inicial es:
+La aptitud es:
 
 ```text
 100 * fichas_colocadas - 10 * celdas_ocupadas - 25 * reparaciones
@@ -673,10 +726,21 @@ El agente crea y evalua hijos hasta agotar un presupuesto determinista de
 inicializacion como en el bucle evolutivo. El reloj, al 98 % de `T`, queda solo
 como salvaguarda del limite obligatorio. La medida de esfuerzo es
 `evaluaciones_aptitud`: una clonacion que reutiliza una aptitud no incrementa
-este contador. La poblacion de 20 individuos, el torneo de 3, el cruce de 0.70 y
-los pesos 100/10/25 son decisiones de diseno fijas para esta entrega, no
-parametros que presentemos como calibrados. Las baterias formales documentan su
-comportamiento en las instancias evaluadas.
+este contador.
+
+### Parametros y procedimiento con el que se fijaron
+
+| Parametro | Valor | Como se fijo |
+|---|---|---|
+| Tamano de poblacion | 20 | Barrido de calibracion (ver *Calibracion del evolutivo*). |
+| Tamano de torneo | 3 | Barrido de calibracion. |
+| Probabilidad de cruce | 0.70 | Barrido de calibracion. |
+| Pesos de la aptitud | 100 / 10 / 25 | Por diseno: replican el orden del concurso. No se calibran. |
+| Presupuesto de evaluaciones | `floor(20000 * T / M)` | Criterio de paro y determinismo. |
+
+El barrido, su regla de eleccion y sus resultados estan en la seccion
+*Calibracion del evolutivo*, y se reproducen con
+`python -m experimentos.calibracion_evolutivo`.
 
 ## Criterio de paro y determinismo
 
@@ -700,8 +764,8 @@ obligatorio:
 
 Mientras la salvaguarda no actua, la misma entrada ejecuta exactamente el mismo
 trabajo y produce la misma solucion. Si llegara a actuar, por ejemplo en una
-maquina mucho mas lenta que aquella donde se midieron las corridas, el agente lo avisa por
-salida estandar y la bateria experimental lo registra en la columna
+maquina mucho mas lenta que aquella donde se midieron las corridas, el agente lo
+avisa por salida estandar y la bateria experimental lo registra en la columna
 `clock_safeguard`. No se afirma un determinismo valido para cualquier maquina
 imaginable: lo que se demuestra es que, con estos presupuestos, las corridas
 evaluadas completan su trabajo antes de que la salvaguarda intervenga.
@@ -730,7 +794,6 @@ salvaguarda y ninguna discrepancia con el validador:
 python -m experimentos.determinismo --experimento determinismo_presupuesto_sesion1
 python -m experimentos.determinismo --experimento determinismo_presupuesto_sesion2
 ```
-
 
 ## Decisiones de diseno
 

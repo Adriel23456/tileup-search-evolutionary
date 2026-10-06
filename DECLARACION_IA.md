@@ -258,12 +258,9 @@ validador sin aprobacion.
 - Reviso en cada fase la evidencia reportada (hashes, estados, revalidacion) e
   hizo los commits manualmente.
 
-La redaccion de esta seccion la propuso la herramienta y queda sujeta a la
-revision del integrante.
-
 ## Historial de este documento
 
 | Fecha | Cambio |
 |---|---|
-| Semana 10 | Version inicial, con la declaracion de Adriel S. Chaves Salazar. |
+| 2026-09-20 | Version inicial, con la declaracion de Adriel S. Chaves Salazar. |
 | 2026-09-30 | Declaracion de Sebastian Hernandez Bonilla para las Etapas A y C. |

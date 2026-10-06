@@ -10,9 +10,9 @@ se interpretan los resultados. Todas las afirmaciones cuantitativas se
 restringen a las baterías y al entorno reportados.
 
 Los resultados formales de comparación y escalabilidad provienen de los CSV
-`crudo.csv` y sus resúmenes. La elección de parámetros también se describe por
-separado, a partir de las pruebas exploratorias del agente evolutivo. En cada
-sección se distingue lo que se observó de lo que se concluye.
+`crudo.csv` y sus resúmenes. Los parámetros del agente evolutivo se sometieron
+a un barrido de calibración, descrito en la sección 1.2, con sus propios CSV.
+En cada sección se distingue lo que se observó de lo que se concluye.
 
 ## 1. Formulación de los agentes
 
@@ -154,7 +154,7 @@ coordenada ya está ocupada, se cuenta una reparación virtual para poder seguir
 evaluando el resto de la propuesta; una propuesta con reparaciones nunca se
 entrega como solución.
 
-Con los valores usados en las pruebas, su puntuación es:
+Su puntuación es:
 
 ```text
 aptitud = 100 × fichas_colocadas − 10 × celdas_ocupadas − 25 × reparaciones
@@ -162,15 +162,17 @@ aptitud = 100 × fichas_colocadas − 10 × celdas_ocupadas − 25 × reparacion
 
 Así, primero le importa colocar fichas; después, dejar pocas celdas ocupadas.
 Las reparaciones penalizan propuestas cuya secuencia tuvo que ajustarse para
-seguir siendo legal.
+seguir siendo legal. Los pesos 100/10/25 no se calibraron: replican el orden
+del concurso (primero fichas colocadas, luego celdas ocupadas) y las
+reparaciones solo sirven para desempatar a favor de planes legales.
 
 #### Selección y cambio
 
 | Componente | Decisión implementada |
 |---|---|
 | Población inicial | 20 individuos: un plan legal guiado por fusiones y los otros 19 planes legales aleatorios, derivados de la semilla. |
-| Selección | Escoge propuestas buenas para crear nuevas alternativas. |
-| Cruce y cambio | Combina dos propuestas y cambia algunas posiciones para explorar opciones nuevas. |
+| Selección | Torneo de tres individuos. |
+| Cruce y cambio | Cruce de un punto con probabilidad 0.70 y mutación guiada de 0 a 3 genes. |
 | Reemplazo | Conserva una propuesta nueva solo si mejora a una de las actuales. |
 | Paro | Usa un presupuesto de trabajo que depende del tiempo disponible y de la cantidad de fichas. |
 
@@ -251,25 +253,94 @@ Así, con la misma instancia, semilla, configuración y `T`, se ejecuta la misma
 cantidad de evaluaciones y se obtiene la misma decisión, independientemente de
 pequeñas variaciones en la velocidad de la computadora.
 
-**Configuración del evolutivo.** Las tablas de las secciones 3 y 4 corresponden
-a los valores fijos de diseño usados en esta entrega: población 20, torneo 3,
-cruce 0.70 y pesos 100/10/25. Se realizaron pruebas exploratorias de varias
-configuraciones antes de fijarlos, pero no constituyen una calibración
-exhaustiva ni forman parte de las baterías formales.
+#### Calibración de parámetros
 
-#### Exploración de configuraciones y del presupuesto
+**Qué se calibró.** Los tres parámetros del algoritmo evolutivo: tamaño de la
+población, tamaño del torneo y probabilidad de cruce. Los pesos de la aptitud
+y los presupuestos de trabajo no entran en este barrido: los primeros replican
+el orden del concurso y los segundos se fijaron con el procedimiento de la
+sección 2.4.
 
-En las instancias exploratorias, las configuraciones finalistas empataron en
+**Procedimiento.** Los valores base (población 20, torneo 3, cruce 0.70) se
+habían fijado como decisión de diseño antes de calibrar. El barrido los somete
+a prueba: se evalúa la base y seis variantes, y cada variante cambia un solo
+parámetro y deja los otros dos en su valor base.
+
+| Parámetro | Valores probados | Base |
+|---|---|---|
+| Tamaño de población | 10, 20, 40 | 20 |
+| Tamaño del torneo | 2, 3, 5 | 3 |
+| Probabilidad de cruce | 0.50, 0.70, 0.90 | 0.70 |
+
+La regla de elección se fijó **antes** de ver los resultados: gana la
+configuración con menor media de celdas ocupadas; ante empate gana la base, y
+entre variantes empatadas, la de menor tiempo medio.
+
+Para no ajustar los parámetros sobre los mismos datos del informe, el barrido
+usa tres instancias de calibración cuya configuración (N, K, M) no coincide con
+ninguna de las baterías formales: (4, 3, 12), (5, 3, 20) y (6, 4, 30), con
+semillas pareadas 101, 102 y 103 y `T = 10 s`. Son 7 configuraciones × 3
+instancias × 3 semillas = 63 corridas. Todas pasaron por el validador
+independiente (63 de 63 válidas) y ninguna activó la salvaguarda del reloj.
+
+**Resultados.** Los valores son media ± desviación estándar muestral entre las
+nueve corridas de cada configuración.
+
+| Configuración | Celdas ocupadas | Mín–máx | Tiempo medio |
+|---|---|---|---|
+| base (20 / 3 / 0.70) | 3.33 ± 0.50 | 3–4 | 4.16 ± 0.43 s |
+| población = 10 | 3.33 ± 0.50 | 3–4 | 4.24 ± 0.49 s |
+| población = 40 | 3.33 ± 0.50 | 3–4 | 4.25 ± 0.37 s |
+| torneo = 2 | 3.33 ± 0.50 | 3–4 | 4.21 ± 0.44 s |
+| torneo = 5 | 3.33 ± 0.50 | 3–4 | 4.15 ± 0.44 s |
+| cruce = 0.50 | 3.44 ± 0.73 | 3–5 | 4.21 ± 0.57 s |
+| cruce = 0.90 | 3.44 ± 0.73 | 3–5 | 4.12 ± 0.42 s |
+
+Desglose por instancia de calibración (celdas ocupadas):
+
+| Instancia | Todas las configuraciones, salvo |
+|---|---|
+| (4, 3, 12), semillas 101–103 | Ninguna: todas dejaron 3. |
+| (5, 3, 20), semillas 101–103 | Ninguna: todas dejaron 3. |
+| (6, 4, 30), semillas 101–103 | Dejaron 4, salvo cruce = 0.50 y cruce = 0.90 en la semilla 103, que dejaron 5. |
+
+**Lectura.** La configuración base resultó ganadora, pero conviene precisar por
+qué. Las cinco configuraciones de población y torneo empataron exactamente con
+la base, y la regla de desempate favorece a la base. Las dos variantes de cruce
+quedaron ligeramente peor en media, y esa diferencia proviene de **dos
+corridas** (una por variante, en la misma instancia). Lo que muestra el barrido
+es que, en estas instancias, el agente es poco sensible a los tres parámetros;
+no demuestra que la base sea óptima. El tiempo medio no distingue
+configuraciones: el presupuesto de evaluaciones es el mismo para todas (11110.7
+evaluaciones de media) y las diferencias de décimas de segundo están dentro de
+la desviación observada. Por eso se conservó la base y no se rehicieron las
+baterías formales.
+
+**Limitaciones de la calibración.** El barrido cambia un parámetro a la vez, de
+modo que no explora interacciones entre parámetros. Cada configuración se
+evaluó con nueve corridas, en instancias donde la mayoría de las
+configuraciones empatan, así que su poder para distinguir configuraciones es
+limitado. Es un procedimiento explícito y reproducible, no una optimización
+exhaustiva. Se reproduce con:
+
+```text
+python -m experimentos.calibracion_evolutivo
+```
+
+Los resultados están en `resultados/experimentos/calibracion_evolutivo/`
+(`crudo.csv`, `resumen.csv` y `metadatos.json`).
+
+#### Exploración previa del presupuesto
+
+Antes de la calibración formal se hicieron pruebas informales, que se conservan
+solo como contexto y no forman parte de las baterías formales ni de la
+calibración.
+
+En esas instancias exploratorias, las configuraciones finalistas empataron en
 los dos criterios de calidad: fichas colocadas y celdas ocupadas. Algunas
 mostraron tiempos ligeramente menores, pero la diferencia fue menor que la
 variación observada entre corridas; por eso se interpreta como ruido de
 medición y no como evidencia de que una configuración sea más rápida.
-
-Esto permite tratar como equivalentes a las configuraciones probadas en esas
-instancias y elegir una configuración simple, cercana a los valores ya usados.
-No significa que cualquier configuración produzca siempre el mismo resultado:
-la conclusión se limita a las finalistas, las instancias y las semillas
-exploradas.
 
 También se evaluó si el empate podía deberse a que el presupuesto de
 evaluaciones fuera demasiado corto. Para el finalista `aleatorio_014` se
@@ -280,14 +351,14 @@ calidad observada a 10 segundos: todas colocaron la secuencia completa y
 terminaron con tres celdas ocupadas. El tiempo promedio aumentó a 8.9 s y
 17.7 s, respectivamente, sin mejorar esos criterios.
 
-Para este conjunto acotado, el presupuesto de 10 segundos no parece explicar
+Para ese conjunto acotado, el presupuesto de 10 segundos no parece explicar
 el empate: el agente ya encuentra esa calidad antes de agotarlo. En instancias
 más difíciles podría ocurrir lo contrario; para afirmarlo harían falta nuevas
 pruebas pareadas con presupuestos mayores.
 
-## 2. Metodologia
+## 2. Metodología
 
-### 2.1 Que exige el enunciado y que decidimos nosotros
+### 2.1 Qué exige el enunciado y qué decidimos nosotros
 
 | Elemento | Origen |
 |---|---|
@@ -295,31 +366,34 @@ pruebas pareadas con presupuestos mayores.
 | Al menos 6 configuraciones de N, K y M, con al menos 3 semillas cada una | Enunciado |
 | Fichas colocadas, celdas ocupadas y tiempo | Enunciado |
 | Escalabilidad: al menos 3 tamaños de tablero y 3 cantidades de colores | Enunciado |
-| Limite de tiempo `T = 10 s` comun a todas las corridas | Decision nuestra, tras el piloto |
-| Semillas pareadas `s = 1, 2, 3` | Decision nuestra |
+| Parámetros del evolutivo documentados con el procedimiento por el que se fijaron | Enunciado |
+| Límite de tiempo `T = 10 s` común a todas las corridas | Decisión nuestra, tras el piloto |
+| Semillas pareadas `s = 1, 2, 3` | Decisión nuestra |
 | Cantidad de fichas en cada tamaño de tablero | Decisión nuestra |
 | Densidad de fichas `rho = M / N²` en escalabilidad | Decisión nuestra |
-| Las seis configuraciones de la comparacion | Decision nuestra, tras el piloto |
-| Cantidad de intentos que usa cada agente | Decisión nuestra (ver 2.4) |
+| Las seis configuraciones de la comparación | Decisión nuestra, tras el piloto |
+| Cantidad de trabajo que usa cada agente | Decisión nuestra (ver 2.4) |
+| Parámetros del evolutivo (población, torneo, cruce) | Decisión nuestra, sometidos a barrido (ver 1.2) |
+| Instancias y semillas de la calibración | Decisión nuestra, distintas de las baterías formales |
 
 ### 2.2 Instancias y semillas
 
 Todas las instancias las produce el generador del proyecto
-(`python main.py generar`). Son resolubles por construccion: el generador juega
+(`python main.py generar`). Son resolubles por construcción: el generador juega
 una partida legal completa mientras inventa la secuencia.
 
 Para cada semilla usamos exactamente la misma instancia con los dos agentes.
 Así, cuando los comparamos, la diferencia viene del agente y no de un tablero
 distinto.
 
-### 2.3 Metricas
+### 2.3 Métricas
 
 | Columna | Significado |
 |---|---|
 | `tiles_placed` | Fichas colocadas. Primer criterio del concurso. |
 | `occupied_cells` | Celdas ocupadas al terminar. Segundo criterio del concurso. |
-| `elapsed_s` | Tiempo de planificacion del agente, en segundos. Tercer criterio. |
-| `complete` | La solucion final consumio la secuencia completa. |
+| `elapsed_s` | Tiempo de planificación del agente, en segundos. Tercer criterio. |
+| `complete` | La solución final consumió la secuencia completa. |
 | `search_cutoff` | Solo A*: la búsqueda se detuvo antes de llegar a la meta y luego completó la partida con su regla sencilla. |
 | `clock_safeguard` | El reloj de protección detuvo al agente antes de terminar su trabajo previsto. |
 
@@ -346,24 +420,25 @@ y esa corrida no se usa para demostrar que el resultado se puede repetir.
 
 ### 2.5 Validez de las corridas
 
-Cada corrida paso por el validador independiente (`main.py validar`). Una
-corrida cuenta como valida solo si el validador acepta la solucion y ademas las
-fichas colocadas, celdas ocupadas y ficha mayor que informo el agente coinciden
+Cada corrida pasó por el validador independiente (`main.py validar`). Una
+corrida cuenta como válida solo si el validador acepta la solución y además las
+fichas colocadas, celdas ocupadas y ficha mayor que informó el agente coinciden
 con las que reproduce el validador.
 
-| Batería | Corridas | Soluciones válidas |
+| Experimento | Corridas | Soluciones válidas |
 |---|---|---|
 | Comparación | 36 | 36 |
 | Escalabilidad | 54 | 54 |
+| Calibración del evolutivo | 63 | 63 |
 
 Ninguna corrida excedió el tiempo límite ni activó la salvaguarda.
 
 ### 2.6 Entorno
 
 Las pruebas se ejecutaron de forma secuencial en una misma computadora. Los
-datos técnicos del entorno están en `metadatos.json` de cada batería.
+datos técnicos del entorno están en `metadatos.json` de cada experimento.
 
-## 3. Comparacion experimental
+## 3. Comparación experimental
 
 ### 3.1 Configuraciones
 
@@ -384,17 +459,20 @@ Son 6 configuraciones × 3 semillas × 2 agentes = 36 corridas.
 
 ### 3.2 Resultados
 
-La tabla muestra el promedio de las tres partidas de cada caso. Los dos agentes
-colocaron todas las fichas en todos ellos.
+La tabla muestra el resultado de las tres partidas de cada caso. Los dos
+agentes colocaron todas las fichas en todos ellos.
 
-| Tamaño | Colores | Fichas | Celdas ocupadas: A* | Celdas ocupadas: evolutivo | Tiempo medio: A* / evolutivo |
-|---|---|---|---|---|---|
-| 3×3 | 4 | 14 | 3.67 | 3.67 | 0.40 s / 4.20 s |
-| 4×4 | 4 | 8 | 3 | 3 | 2.12 s / 5.63 s |
-| 4×4 | 2 | 16 | 4.67 | 2 | 3.07 s / 4.78 s |
-| 5×5 | 2 | 13 | 5.67 | 2 | 6.19 s / 5.64 s |
-| 5×5 | 4 | 25 | 16 | 4 | 2.05 s / 4.96 s |
-| 6×6 | 4 | 36 | 26.67 | 4.33 | 2.31 s / 5.36 s |
+| Tamaño | Colores | Fichas | Celdas ocupadas: A* | Celdas ocupadas: evolutivo | Tiempo: A* | Tiempo: evolutivo |
+|---|---|---|---|---|---|---|
+| 3×3 | 4 | 14 | 3.67 ± 0.58 | 3.67 ± 0.58 | 0.40 ± 0.36 s | 4.20 ± 0.31 s |
+| 4×4 | 4 | 8 | 3 ± 0 | 3 ± 0 | 2.12 ± 1.92 s | 5.63 ± 0.18 s |
+| 4×4 | 2 | 16 | 4.67 ± 1.53 | 2 ± 0 | 3.07 ± 0.14 s | 4.78 ± 0.27 s |
+| 5×5 | 2 | 13 | 5.67 ± 0.58 | 2 ± 0 | 6.19 ± 0.56 s | 5.64 ± 0.30 s |
+| 5×5 | 4 | 25 | 16 ± 1 | 4 ± 0 | 2.05 ± 0.31 s | 4.96 ± 0.26 s |
+| 6×6 | 4 | 36 | 26.67 ± 2.52 | 4.33 ± 0.58 | 2.31 ± 0.31 s | 5.36 ± 0.31 s |
+
+Los valores son media ± desviación estándar muestral entre las tres semillas;
+mínimos y máximos están en `resumen.csv`.
 
 ![Calidad y tiempo](resultados/experimentos/comparacion/graficas/comparacion_calidad_y_tiempo.png)
 
@@ -403,11 +481,14 @@ colocaron todas las fichas en todos ellos.
 - Los dos agentes lograron colocar todas las fichas en las 36 partidas. Por eso,
   en estas pruebas la diferencia importante es cuántas celdas quedaron
   ocupadas al final.
-- El evolutivo dejó menos celdas ocupadas en 12 de las 18 instancias y empató
-  en las otras 6. No quedó por detrás en ninguna.
-- Cuando A* logró terminar su búsqueda, ambos obtuvieron el mismo resultado.
-  Cuando el tablero fue más difícil y A* tuvo que detenerse antes, el
-  evolutivo dejó mejores tableros finales.
+- En 4 de las 6 configuraciones el evolutivo dejó menos celdas ocupadas en
+  promedio (4×4 con 2 colores, 5×5 con 2 colores, 5×5 con 4 colores y 6×6). En
+  las otras 2 (3×3 con 4 colores y 4×4 con 4 colores) los promedios coinciden.
+  En ninguna configuración quedó por detrás.
+- En las configuraciones donde A* terminó su búsqueda, o la cortó en muy pocas
+  partidas, ambos obtuvieron el mismo resultado. Cuando el tablero fue más
+  difícil y A* tuvo que detenerse antes, el evolutivo dejó mejores tableros
+  finales.
 - A* fue mucho más rápido en los casos pequeños que pudo resolver por completo.
   El evolutivo tardó unos pocos segundos de forma más pareja.
 
@@ -422,9 +503,10 @@ tiempos probados aquí.
 ### 3.5 Variación entre partidas
 
 Cambiar la semilla puede cambiar qué tan difícil resulta una partida concreta,
-especialmente para A*. Aun así, la tendencia general se mantuvo: el evolutivo
-fue igual o mejor en celdas ocupadas y A* fue más rápido cuando pudo terminar
-su búsqueda.
+especialmente para A*: su desviación en celdas ocupadas llega a 2.52 en 6×6,
+mientras que la del evolutivo no supera 0.58 en ninguna configuración. Aun así,
+la tendencia general se mantuvo: el evolutivo fue igual o mejor en celdas
+ocupadas y A* fue más rápido cuando pudo terminar su búsqueda.
 
 ## 4. Escalabilidad
 
@@ -479,21 +561,24 @@ una cantidad de fichas cercana a la capacidad máxima del tablero.
 
 ### 4.2 Resultados
 
-Todos los casos se jugaron completos. La tabla conserva solo los resultados
-necesarios para comparar la calidad final y si A* alcanzó a terminar su
-búsqueda.
+Todos los casos se jugaron completos. La tabla conserva los resultados
+necesarios para comparar la calidad final, el tiempo y si A* alcanzó a terminar
+su búsqueda.
 
-| Tamaño | Colores | Fichas | Celdas ocupadas: A* | Celdas ocupadas: evolutivo | A* terminó su búsqueda |
-|---|---|---|---|---|---|
-| 3×3 | 2 | 5 | 2 | 2 | 3 de 3 |
-| 3×3 | 3 | 5 | 2.67 | 2.67 | 3 de 3 |
-| 3×3 | 4 | 5 | 2.67 | 2.67 | 3 de 3 |
-| 4×4 | 2 | 8 | 2 | 2 | 3 de 3 |
-| 4×4 | 3 | 8 | 3 | 3 | 1 de 3 |
-| 4×4 | 4 | 8 | 3 | 3 | 2 de 3 |
-| 5×5 | 2 | 13 | 5.67 | 2 | 0 de 3 |
-| 5×5 | 3 | 13 | 6.67 | 3 | 0 de 3 |
-| 5×5 | 4 | 13 | 8.33 | 3.67 | 0 de 3 |
+| Tamaño | Colores | Fichas | Ocupadas: A* | Ocupadas: evolutivo | Tiempo: A* | Tiempo: evolutivo | A* terminó su búsqueda |
+|---|---|---|---|---|---|---|---|
+| 3×3 | 2 | 5 | 2 ± 0 | 2 ± 0 | 0.09 ± 0.14 s | 5.57 ± 0.17 s | 3 de 3 |
+| 3×3 | 3 | 5 | 2.67 ± 0.58 | 2.67 ± 0.58 | 0.12 ± 0.18 s | 5.37 ± 0.08 s | 3 de 3 |
+| 3×3 | 4 | 5 | 2.67 ± 0.58 | 2.67 ± 0.58 | 0.16 ± 0.11 s | 5.53 ± 0.11 s | 3 de 3 |
+| 4×4 | 2 | 8 | 2 ± 0 | 2 ± 0 | 2.07 ± 1.73 s | 5.73 ± 0.20 s | 3 de 3 |
+| 4×4 | 3 | 8 | 3 ± 0 | 3 ± 0 | 4.21 ± 0.63 s | 5.59 ± 0.39 s | 1 de 3 |
+| 4×4 | 4 | 8 | 3 ± 0 | 3 ± 0 | 2.10 ± 1.87 s | 5.60 ± 0.23 s | 2 de 3 |
+| 5×5 | 2 | 13 | 5.67 ± 0.58 | 2 ± 0 | 6.21 ± 0.65 s | 5.58 ± 0.17 s | 0 de 3 |
+| 5×5 | 3 | 13 | 6.67 ± 1.15 | 3 ± 0 | 5.71 ± 0.56 s | 6.12 ± 0.55 s | 0 de 3 |
+| 5×5 | 4 | 13 | 8.33 ± 0.58 | 3.67 ± 0.58 | 5.16 ± 0.45 s | 5.87 ± 0.21 s | 0 de 3 |
+
+Los valores son media ± desviación estándar muestral entre las tres semillas;
+mínimos y máximos están en `resumen.csv`.
 
 ![Escalabilidad frente a N](resultados/experimentos/escalabilidad/graficas/escalabilidad_vs_n.png)
 
@@ -511,12 +596,21 @@ evolutivo mantuvo resultados similares al crecer el tablero; en la mayoría de
 los casos tardó unos segundos más, aunque en n5_k2_m13 fue ligeramente más
 rápido que A* (5.58 s frente a 6.21 s de media).
 
+Los tiempos de n5_k2_m13 difieren levemente de los de la sección 3 (6.19 s y
+5.64 s allí) porque provienen de corridas separadas sobre las mismas
+instancias: las soluciones son idénticas (mismo hash `solution_sha256` para
+cada semilla y agente) y solo varía el tiempo de reloj. La gráfica contra N
+está arriba; la gráfica contra K aparece en la sección 4.4.
+
 ### 4.4 Qué pasó al usar más colores
 
-Con más colores suele ser más difícil juntar fichas iguales, así que al final
-quedan igual o más celdas ocupadas. Esto se ve sobre todo en los tableros de
-5×5. No encontramos una regla igual de clara sobre el tiempo: depende bastante
-de la partida que toque.
+![Escalabilidad frente a K](resultados/experimentos/escalabilidad/graficas/escalabilidad_vs_k.png)
+
+Con más colores es más difícil juntar fichas iguales, así que quedan igual o
+más celdas ocupadas. El efecto es claro en 5×5: de 2 a 4 colores, A* pasa de
+5.67 a 8.33 celdas ocupadas y el evolutivo de 2 a 3.67. En 3×3 y 4×4 el efecto
+es pequeño porque ambos agentes ya llegan a la misma solución. En el tiempo no
+encontramos una regla igual de clara: depende de la partida concreta.
 
 ### 4.5 Resumen de escalabilidad
 
@@ -542,7 +636,9 @@ poco más rápida o más lenta.
 Repetimos partidas con la misma semilla y los agentes entregaron la misma
 solución. Las filas de cada ejecución están en `crudo.csv`; los promedios de
 cada configuración, en `resumen.csv`; y los datos de la computadora usada, en
-`metadatos.json`, dentro de las carpetas de comparación y escalabilidad.
+`metadatos.json`, dentro de las carpetas de comparación, escalabilidad y
+calibración del evolutivo. La calibración se reproduce con
+`python -m experimentos.calibracion_evolutivo`.
 
 No hace falta volver a correr los agentes para comprobar que las soluciones
 guardadas son legales. El validador reproduce las reglas del juego de manera
@@ -570,11 +666,12 @@ resultado se repite exactamente.
   su presupuesto. Por tanto, los resultados describen a ambos agentes con el
   límite de 10 segundos y estos presupuestos, no una ventaja universal de uno
   sobre el otro.
-- **Exploración de parámetros acotada.** El empate entre las configuraciones
-  exploradas y la prueba de más presupuesto se observó en tres configuraciones
-  y tres semillas. Sirven para justificar que los valores fijos no muestran una
-  diferencia observable en esas instancias, pero no para declarar equivalentes
-  todas las configuraciones ni para descartar mejoras en casos más difíciles.
+- **Calibración acotada.** El barrido cambia un parámetro a la vez, sobre tres
+  instancias y tres semillas (nueve corridas por configuración). En esas
+  instancias la mayoría de las configuraciones empatan, así que el barrido
+  muestra que el agente es poco sensible a población, torneo y cruce, no que
+  los valores elegidos sean óptimos. No explora interacciones entre parámetros
+  ni configuraciones mayores, y los pesos de la aptitud no se calibraron.
 - **Una sola computadora.** Los tiempos se midieron en una sola máquina y son
   útiles para comparar estas corridas entre sí. En otra computadora, el tiempo
   en segundos puede cambiar. El presupuesto fijo reduce ese efecto sobre la
